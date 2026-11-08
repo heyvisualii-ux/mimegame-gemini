@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { GameModeId, UserProfile } from '@/types/game';
 import { GAME_MODES } from '@/data/seedData';
+import { UI_THEMES, UiThemeId } from '@/lib/theme';
 import { GlassCard } from '../GlassCard';
 import { MascotMimeo } from '../MascotMimeo';
 import { PantoMixLogo } from '../PantoMixLogo';
@@ -22,21 +23,25 @@ import {
 interface HomeScreenViewProps {
   profile: UserProfile | null;
   selectedModeId: GameModeId;
+  currentThemeId: UiThemeId;
   onSelectMode: (modeId: GameModeId) => void;
   onQuickStart: () => void;
   onOpenSetup: () => void;
   onOpenAiMaster: () => void;
   onOpenProfile: () => void;
+  onOpenThemeSelector: () => void;
 }
 
 export const HomeScreenView: React.FC<HomeScreenViewProps> = ({
   profile,
   selectedModeId,
+  currentThemeId,
   onSelectMode,
   onQuickStart,
   onOpenSetup,
   onOpenAiMaster,
   onOpenProfile,
+  onOpenThemeSelector,
 }) => {
   const [dialogueIdx, setDialogueIdx] = useState(0);
 
@@ -55,6 +60,7 @@ export const HomeScreenView: React.FC<HomeScreenViewProps> = ({
   ];
 
   const currentModeInfo = GAME_MODES.find((m) => m.id === selectedModeId) || GAME_MODES[0];
+  const activeTheme = UI_THEMES[currentThemeId] || UI_THEMES.luxury;
 
   return (
     <div className="space-y-6 pb-24 pt-2 animate-fadeIn max-w-sm mx-auto">
@@ -62,18 +68,31 @@ export const HomeScreenView: React.FC<HomeScreenViewProps> = ({
       <div className="flex items-center justify-between px-1">
         <PantoMixLogo size="md" showSubtitle={false} />
 
-        <button
-          onClick={() => {
-            soundManager.playPop();
-            onOpenProfile();
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] hover:border-amber-400/30 transition-all text-xs font-bold text-slate-300 hover:text-white"
-        >
-          <Coins className="w-3.5 h-3.5 text-amber-400" />
-          <span>{profile?.coins || 100}</span>
-          <span className="text-slate-500">•</span>
-          <span className="text-[11px] text-amber-300 font-bold">سطح {profile?.level || 1}</span>
-        </button>
+        <div className="flex items-center gap-1.5">
+          {/* Live UI/UX Theme Switcher Trigger */}
+          <button
+            onClick={() => {
+              soundManager.playPop();
+              onOpenThemeSelector();
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.1] hover:border-amber-400/40 transition-all text-xs font-bold text-amber-300"
+            title="تغییر سبک دیزاین UI/UX"
+          >
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: activeTheme.primaryAccent }} />
+            <span>سبک UI</span>
+          </button>
+
+          <button
+            onClick={() => {
+              soundManager.playPop();
+              onOpenProfile();
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] hover:border-amber-400/30 transition-all text-xs font-bold text-slate-300 hover:text-white"
+          >
+            <Coins className="w-3.5 h-3.5 text-amber-400" />
+            <span>{profile?.coins || 100}</span>
+          </button>
+        </div>
       </div>
 
       {/* Hero Character Stage (Secluded, Calmer, Focused) */}
@@ -136,7 +155,7 @@ export const HomeScreenView: React.FC<HomeScreenViewProps> = ({
             soundManager.playPop();
             onQuickStart();
           }}
-          className="w-full h-14 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 font-black text-base shadow-lg shadow-amber-400/20 hover:shadow-amber-400/30 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2.5 border border-amber-300/50"
+          className={`w-full h-14 rounded-2xl ${activeTheme.accentButtonClass} text-base hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2.5 border border-white/20`}
         >
           <Play className="w-5 h-5 fill-current ml-0.5" />
           <span>شروع بازی ({currentModeInfo.titleFa})</span>

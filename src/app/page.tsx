@@ -32,6 +32,8 @@ import { ResultsView } from '@/components/screens/ResultsView';
 import { AiMasterView } from '@/components/screens/AiMasterView';
 import { CommunityView } from '@/components/screens/CommunityView';
 import { ProfileView } from '@/components/screens/ProfileView';
+import { ThemeSelectorModal } from '@/components/ThemeSelectorModal';
+import { UI_THEMES, UiThemeId } from '@/lib/theme';
 
 type ScreenState = 'HOME' | 'SETUP' | 'GAMEPLAY' | 'RESULTS';
 
@@ -39,6 +41,8 @@ export default function MimeMasterApp() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [screenState, setScreenState] = useState<ScreenState>('HOME');
   const [isMuted, setIsMuted] = useState(false);
+  const [currentThemeId, setCurrentThemeId] = useState<UiThemeId>('luxury');
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
   // Persistent user and game state
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -84,6 +88,14 @@ export default function MimeMasterApp() {
     setSessions(getStoredSessions());
     setCommunityWords(getStoredCommunityWords());
     setAllWords(getAllWords());
+    try {
+      const savedTheme = localStorage.getItem('pantomix_theme_id') as UiThemeId;
+      if (savedTheme && UI_THEMES[savedTheme]) {
+        setCurrentThemeId(savedTheme);
+      }
+    } catch {
+      // safe fallback
+    }
   }, []);
 
   // Timer Tick Effect
@@ -353,9 +365,17 @@ export default function MimeMasterApp() {
 
   const selectedModeInfo =
     GAME_MODES.find((m) => m.id === selectedModeId) || GAME_MODES[0];
+  const activeTheme = UI_THEMES[currentThemeId] || UI_THEMES.luxury;
 
   return (
-    <div className="relative pb-16">
+    <div className="relative pb-16 transition-colors duration-500 min-h-screen">
+      {/* Dynamic Ambient Theme Glow */}
+      <div
+        className="fixed inset-0 pointer-events-none transition-all duration-700 opacity-60 z-0"
+        style={{
+          background: `radial-gradient(circle at 50% 15%, ${activeTheme.glowColor} 0%, transparent 65%)`,
+        }}
+      />
       {/* Tab routing */}
       {activeTab === 'ai-master' ? (
         <AiMasterView
@@ -384,6 +404,7 @@ export default function MimeMasterApp() {
             <HomeScreenView
               profile={profile}
               selectedModeId={selectedModeId}
+              currentThemeId={currentThemeId}
               onSelectMode={(modeId) => {
                 setSelectedModeId(modeId);
               }}
@@ -391,6 +412,7 @@ export default function MimeMasterApp() {
               onOpenSetup={() => setScreenState('SETUP')}
               onOpenAiMaster={() => setActiveTab('ai-master')}
               onOpenProfile={() => setActiveTab('profile')}
+              onOpenThemeSelector={() => setIsThemeModalOpen(true)}
             />
           )}
 
@@ -471,6 +493,21 @@ export default function MimeMasterApp() {
           onToggleMute={handleToggleMute}
         />
       )}
+
+      {/* Live UI/UX Theme Switcher Modal */}
+      <ThemeSelectorModal
+        currentThemeId={currentThemeId}
+        isOpen={isThemeModalOpen}
+        onClose={() => setIsThemeModalOpen(false)}
+        onSelectTheme={(themeId) => {
+          setCurrentThemeId(themeId);
+          try {
+            localStorage.setItem('pantomix_theme_id', themeId);
+          } catch {
+            // safe fallback
+          }
+        }}
+      />
     </div>
   );
 }
