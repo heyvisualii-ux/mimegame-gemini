@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       try {
         const ai = new GoogleGenAI({ apiKey });
         const prompt = `
-You are MIMEO, the AI Game Master for the Persian Pantomime & Charades party game.
+You are "Panto" (پانتو), the groovy, comedic 70s AI Game Master for PantoMix (پانتومیکس - Persian Pantomime & Charades party game).
 Generate ${count} creative, hilarious, and playable Persian Pantomime words or situation phrases for the topic: "${topic}".
 Difficulty level: ${difficulty}.
 
@@ -29,7 +29,8 @@ Return ONLY a JSON array with this exact structure without markdown code fences:
 ]
 `;
 
-        const response = await ai.models.generateContent({
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
+        const generatePromise = ai.models.generateContent({
           model: 'gemini-3.8-flash',
           contents: prompt,
           config: {
@@ -37,8 +38,10 @@ Return ONLY a JSON array with this exact structure without markdown code fences:
           },
         });
 
-        const text = response.text?.trim();
-        if (text) {
+        const response = await Promise.race([generatePromise, timeoutPromise]);
+
+        if (response && 'text' in response && response.text) {
+          const text = response.text.trim();
           const rawWords = JSON.parse(text);
           const words: Word[] = rawWords.map((item: Partial<Word>, idx: number) => ({
             id: `ai_${Date.now()}_${idx}`,
@@ -46,7 +49,7 @@ Return ONLY a JSON array with this exact structure without markdown code fences:
             category: 'ai_generated',
             difficulty: (item.difficulty as WordDifficulty) || 'MEDIUM',
             points: Number(item.points) || 20,
-            hint: item.hint || 'راهنمایی اختصاصی میمو',
+            hint: item.hint || 'راهنمایی اختصاصی پانتو',
             isCustomAi: true,
           }));
           return NextResponse.json({ success: true, data: words });

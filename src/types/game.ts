@@ -93,3 +93,12 @@ export interface AiGameRecommendation {
   roundTimerSeconds: number;
   funTip: string;
 }
+
+export interface ScoreLogItem {
+  id: string;
+  points: number;
+  wordText: string;
+  round: number;
+  timestamp: number;
+}
+

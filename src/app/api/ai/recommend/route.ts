@@ -34,7 +34,8 @@ Return ONLY a valid JSON object matching this schema without markdown fences:
 Note: "recommendedModeId" must be one of: "CLASSIC", "SPEED_CHALLENGE", "TEAM_BATTLE", "AI_CHALLENGE", "FAMILY", "PARTY_EXTREME".
         `;
 
-        const response = await ai.models.generateContent({
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
+        const generatePromise = ai.models.generateContent({
           model: 'gemini-3.8-flash',
           contents: prompt,
           config: {
@@ -42,8 +43,10 @@ Note: "recommendedModeId" must be one of: "CLASSIC", "SPEED_CHALLENGE", "TEAM_BA
           },
         });
 
-        const text = response.text?.trim();
-        if (text) {
+        const response = await Promise.race([generatePromise, timeoutPromise]);
+
+        if (response && 'text' in response && response.text) {
+          const text = response.text.trim();
           const parsed: AiGameRecommendation = JSON.parse(text);
           return NextResponse.json({ success: true, data: parsed });
         }
@@ -66,7 +69,7 @@ function getFallbackRecommendation(groupType: string, playerCount: number): AiGa
     return {
       recommendedModeTitle: 'بازی خانوادگی صمیمی 👨‍👩‍👧‍👦',
       recommendedModeId: 'FAMILY' as GameModeId,
-      mimeoGreeting: `سلام به جمع ${playerCount} نفره پرمحبت! میمو کلمات جذاب و شادی براتون آماده کرده تا همه سنین حسابی بخندن و لذت ببرن!`,
+      mimeoGreeting: `سلام به جمع ${playerCount} نفره پرمحبت! پانتو کلمات شاد و پرخنده‌ای آماده کرده تا همه سنین حسابی لذت ببرن!`,
       suggestedCategoryIds: ['animals', 'objects', 'funny'],
       targetRounds: 3,
       roundTimerSeconds: 120,
@@ -89,7 +92,7 @@ function getFallbackRecommendation(groupType: string, playerCount: number): AiGa
   return {
     recommendedModeTitle: 'پارتی اکستریم پانتومیم 🔥',
     recommendedModeId: 'PARTY_EXTREME' as GameModeId,
-    mimeoGreeting: `سلام رفقا! میمو اینجاست تا جمع ${playerCount} نفره‌تون رو با چالش‌های غیرمنتظره به آتیش بکشه!`,
+    mimeoGreeting: `سلام رفقا! پانتو اینجاست تا جمع ${playerCount} نفره‌تون رو با چالش‌های غیرمنتظره به آتیش بکشه!`,
     suggestedCategoryIds: ['cinema', 'funny', 'proverbs'],
     targetRounds: 4,
     roundTimerSeconds: 90,

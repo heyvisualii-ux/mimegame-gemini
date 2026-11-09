@@ -6,6 +6,7 @@ import {
   Category,
   GameModeId,
   GameSession,
+  ScoreLogItem,
   UserProfile,
   Word,
   WordDifficulty,
@@ -65,6 +66,8 @@ export default function MimeMasterApp() {
   const [team2Name, setTeam2Name] = useState('تیم قهرمانان 🏆');
   const [team1Score, setTeam1Score] = useState(0);
   const [team2Score, setTeam2Score] = useState(0);
+  const [team1ScoreHistory, setTeam1ScoreHistory] = useState<ScoreLogItem[]>([]);
+  const [team2ScoreHistory, setTeam2ScoreHistory] = useState<ScoreLogItem[]>([]);
   const [activeTeamIndex, setActiveTeamIndex] = useState(0); // 0 = team1, 1 = team2
   const [currentRound, setCurrentRound] = useState(1);
   const [totalRounds, setTotalRounds] = useState(3);
@@ -169,10 +172,20 @@ export default function MimeMasterApp() {
     setComboCount(newCombo);
     setCorrectGuessesInSession((prev) => prev + 1);
 
+    const logEntry: ScoreLogItem = {
+      id: `score_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      points,
+      wordText: currentWord?.text || 'کلمه پانتومیم',
+      round: currentRound,
+      timestamp: Date.now(),
+    };
+
     if (activeTeamIndex === 0) {
       setTeam1Score((s) => s + points);
+      setTeam1ScoreHistory((prev) => [logEntry, ...prev].slice(0, 3));
     } else {
       setTeam2Score((s) => s + points);
+      setTeam2ScoreHistory((prev) => [logEntry, ...prev].slice(0, 3));
     }
 
     // Reaction commentary
@@ -285,6 +298,8 @@ export default function MimeMasterApp() {
     setRemainingSeconds(duration);
     setTeam1Score(0);
     setTeam2Score(0);
+    setTeam1ScoreHistory([]);
+    setTeam2ScoreHistory([]);
     setActiveTeamIndex(0);
     setIsCardRevealed(false);
     setIsTimerRunning(false);
@@ -368,7 +383,10 @@ export default function MimeMasterApp() {
   const activeTheme = UI_THEMES[currentThemeId] || UI_THEMES.luxury;
 
   return (
-    <div className="relative pb-16 transition-colors duration-500 min-h-screen">
+    <div
+      className="relative pb-16 transition-colors duration-500 min-h-screen -mx-4 px-4"
+      style={{ backgroundColor: activeTheme.bgHex }}
+    >
       {/* Dynamic Ambient Theme Glow */}
       <div
         className="fixed inset-0 pointer-events-none transition-all duration-700 opacity-60 z-0"
@@ -443,6 +461,8 @@ export default function MimeMasterApp() {
               team2Name={team2Name}
               team1Score={team1Score}
               team2Score={team2Score}
+              team1ScoreHistory={team1ScoreHistory}
+              team2ScoreHistory={team2ScoreHistory}
               activeTeamIndex={activeTeamIndex}
               currentRound={currentRound}
               totalRounds={totalRounds}

@@ -1,18 +1,32 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Word } from '@/types/game';
+import { Word, ScoreLogItem } from '@/types/game';
 import { GlassCard } from '../GlassCard';
 import { AnimatedTimerRing } from '../AnimatedTimerRing';
 import { MascotMimeo, MimeoExpression } from '../MascotMimeo';
 import { soundManager } from '@/lib/sound';
-import { Pause, Eye, Check, X, Lightbulb, Play, LogOut, Flame } from 'lucide-react';
+import {
+  Pause,
+  Eye,
+  Check,
+  X,
+  Lightbulb,
+  Play,
+  LogOut,
+  Flame,
+  History,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 
 interface GameplayViewProps {
   team1Name: string;
   team2Name: string;
   team1Score: number;
   team2Score: number;
+  team1ScoreHistory?: ScoreLogItem[];
+  team2ScoreHistory?: ScoreLogItem[];
   activeTeamIndex: number;
   currentRound: number;
   totalRounds: number;
@@ -38,6 +52,8 @@ export const GameplayView: React.FC<GameplayViewProps> = ({
   team2Name,
   team1Score,
   team2Score,
+  team1ScoreHistory = [],
+  team2ScoreHistory = [],
   activeTeamIndex,
   currentRound,
   totalRounds,
@@ -58,6 +74,7 @@ export const GameplayView: React.FC<GameplayViewProps> = ({
   onEndGameEarly,
 }) => {
   const [showPauseModal, setShowPauseModal] = useState(false);
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
 
   const activeTeamName = activeTeamIndex === 0 ? team1Name : team2Name;
   const activeTeamScore = activeTeamIndex === 0 ? team1Score : team2Score;
@@ -115,29 +132,197 @@ export const GameplayView: React.FC<GameplayViewProps> = ({
         </div>
       </div>
 
-      {/* Simplified Teams Score Strip */}
+      {/* Simplified Teams Score Strip with Quick Recent Points Micro-Badges */}
       <div className="grid grid-cols-2 gap-2">
         <div
           className={`p-2 rounded-xl border text-center transition-all ${
             activeTeamIndex === 0
               ? 'bg-amber-400/10 border-amber-400/50 text-amber-300'
-              : 'bg-white/[0.02] border-white/[0.06] text-slate-400 opacity-60'
+              : 'bg-white/[0.02] border-white/[0.06] text-slate-400 opacity-70'
           }`}
         >
           <div className="text-[11px] font-bold truncate">{team1Name}</div>
           <div className="text-base font-black text-white">{team1Score}</div>
+          {/* Quick Last 3 Points Badges */}
+          <div className="flex items-center justify-center gap-1 mt-1 pt-1 border-t border-white/[0.06]">
+            <span className="text-[9px] text-slate-400 font-medium">۳ اخیر:</span>
+            {team1ScoreHistory.length === 0 ? (
+              <span className="text-[9px] text-slate-500">—</span>
+            ) : (
+              team1ScoreHistory.map((item) => (
+                <span
+                  key={item.id}
+                  title={`${item.wordText}: +${item.points}`}
+                  className="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                >
+                  +{item.points}
+                </span>
+              ))
+            )}
+          </div>
         </div>
 
         <div
           className={`p-2 rounded-xl border text-center transition-all ${
             activeTeamIndex === 1
               ? 'bg-amber-400/10 border-amber-400/50 text-amber-300'
-              : 'bg-white/[0.02] border-white/[0.06] text-slate-400 opacity-60'
+              : 'bg-white/[0.02] border-white/[0.06] text-slate-400 opacity-70'
           }`}
         >
           <div className="text-[11px] font-bold truncate">{team2Name}</div>
           <div className="text-base font-black text-white">{team2Score}</div>
+          {/* Quick Last 3 Points Badges */}
+          <div className="flex items-center justify-center gap-1 mt-1 pt-1 border-t border-white/[0.06]">
+            <span className="text-[9px] text-slate-400 font-medium">۳ اخیر:</span>
+            {team2ScoreHistory.length === 0 ? (
+              <span className="text-[9px] text-slate-500">—</span>
+            ) : (
+              team2ScoreHistory.map((item) => (
+                <span
+                  key={item.id}
+                  title={`${item.wordText}: +${item.points}`}
+                  className="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                >
+                  +{item.points}
+                </span>
+              ))
+            )}
+          </div>
         </div>
+      </div>
+
+      {/* Small History Log (Last 3 Points per Team) */}
+      <div className="rounded-2xl bg-white/[0.02] border border-white/[0.07] px-3 py-2 space-y-1.5 text-right transition-all">
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5 font-bold text-slate-300">
+            <History className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-[11px] font-black">تاریخچه ۳ امتیاز اخیر تیم‌ها</span>
+          </div>
+
+          <button
+            onClick={() => {
+              soundManager.playPop();
+              setIsHistoryExpanded(!isHistoryExpanded);
+            }}
+            className="flex items-center gap-1 text-[10px] text-amber-300/90 hover:text-amber-300 font-bold px-2 py-0.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-all"
+          >
+            <span>{isHistoryExpanded ? 'بستن لاگ' : 'مشاهده کلمات'}</span>
+            {isHistoryExpanded ? (
+              <ChevronUp className="w-3 h-3" />
+            ) : (
+              <ChevronDown className="w-3 h-3" />
+            )}
+          </button>
+        </div>
+
+        {isHistoryExpanded ? (
+          <div className="grid grid-cols-2 gap-2 pt-1 animate-fadeIn">
+            {/* Team 1 Details */}
+            <div className="p-2 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-1">
+              <div className="text-[10px] font-bold text-slate-400 truncate pb-1 border-b border-white/[0.04] flex items-center justify-between">
+                <span className="text-slate-200 truncate">{team1Name}</span>
+                <span className="text-emerald-400 text-[9px] font-mono">
+                  {team1ScoreHistory.length}/۳
+                </span>
+              </div>
+              {team1ScoreHistory.length === 0 ? (
+                <div className="text-[10px] text-slate-500 py-1.5 text-center">
+                  هنوز امتیازی ثبت نشده
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {team1ScoreHistory.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between text-[10px] px-1.5 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.04]"
+                    >
+                      <span
+                        className="truncate max-w-[80px] text-slate-300 font-medium"
+                        title={item.wordText}
+                      >
+                        {item.wordText}
+                      </span>
+                      <span className="font-black text-emerald-400 font-mono text-[10px]">
+                        +{item.points}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Team 2 Details */}
+            <div className="p-2 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-1">
+              <div className="text-[10px] font-bold text-slate-400 truncate pb-1 border-b border-white/[0.04] flex items-center justify-between">
+                <span className="text-slate-200 truncate">{team2Name}</span>
+                <span className="text-emerald-400 text-[9px] font-mono">
+                  {team2ScoreHistory.length}/۳
+                </span>
+              </div>
+              {team2ScoreHistory.length === 0 ? (
+                <div className="text-[10px] text-slate-500 py-1.5 text-center">
+                  هنوز امتیازی ثبت نشده
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {team2ScoreHistory.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between text-[10px] px-1.5 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.04]"
+                    >
+                      <span
+                        className="truncate max-w-[80px] text-slate-300 font-medium"
+                        title={item.wordText}
+                      >
+                        {item.wordText}
+                      </span>
+                      <span className="font-black text-emerald-400 font-mono text-[10px]">
+                        +{item.points}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Compact preview line showing both teams' last scores */
+          <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+            <div className="flex items-center gap-1 truncate max-w-[48%]">
+              <span className="font-bold text-slate-300 truncate">{team1Name}:</span>
+              {team1ScoreHistory.length === 0 ? (
+                <span className="text-slate-500">—</span>
+              ) : (
+                team1ScoreHistory.map((item) => (
+                  <span
+                    key={item.id}
+                    className="font-bold text-emerald-400"
+                    title={item.wordText}
+                  >
+                    +{item.points}
+                  </span>
+                ))
+              )}
+            </div>
+
+            <div className="flex items-center gap-1 truncate max-w-[48%] justify-end">
+              <span className="font-bold text-slate-300 truncate">{team2Name}:</span>
+              {team2ScoreHistory.length === 0 ? (
+                <span className="text-slate-500">—</span>
+              ) : (
+                team2ScoreHistory.map((item) => (
+                  <span
+                    key={item.id}
+                    className="font-bold text-emerald-400"
+                    title={item.wordText}
+                  >
+                    +{item.points}
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Secluded Word Card */}
