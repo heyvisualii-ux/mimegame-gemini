@@ -55,15 +55,40 @@ export interface GameSession {
   dateTimestamp: number;
 }
 
+export type AuthState =
+  | 'GUEST'
+  | 'LOGIN_IN_PROGRESS'
+  | 'AUTHENTICATED'
+  | 'PROFILE_LOADING'
+  | 'AUTH_ERROR';
+
 export interface UserProfile {
+  // Core & Display
   name: string;
+  displayName?: string;
+  username?: string;
   avatarId: string;
+  photoURL?: string;
+  bio?: string;
+
+  // Identity & Auth
+  uid?: string;
+  email?: string;
+  createdAt?: string;
+  lastLoginAt?: string;
+
+  // Game Progression
   level: number;
   xp: number;
   coins: number;
   streak: number;
+
+  // Game Statistics
   totalGamesPlayed: number;
   totalCorrectGuesses: number;
+  wins?: number;
+  losses?: number;
+  totalScore?: number;
 }
 
 export interface Achievement {

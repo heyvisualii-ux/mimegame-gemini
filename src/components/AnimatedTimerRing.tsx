@@ -22,35 +22,25 @@ export const AnimatedTimerRing: React.FC<AnimatedTimerRingProps> = ({
   const isUrgent = remainingSeconds <= 10;
   const isWarning = remainingSeconds <= 25 && !isUrgent;
 
-  const color = isUrgent ? '#F44336' : isWarning ? '#FF9800' : '#4CAF50';
+  const color = isUrgent ? '#E11D48' : isWarning ? '#D97706' : '#0B0D12';
 
   return (
     <div
       style={{ width: size, height: size }}
-      className={`relative flex items-center justify-center select-none ${
+      className={`relative flex items-center justify-center select-none bg-white rounded-full shadow-[0_8px_24px_rgba(15,23,42,0.08)] border border-slate-900/[0.06] ${
         isUrgent ? 'animate-pulse' : ''
       }`}
     >
-      {/* Background Glow */}
-      {isUrgent && (
-        <div
-          className="absolute inset-2 rounded-full blur-lg opacity-40 animate-ping"
-          style={{ backgroundColor: color }}
-        />
-      )}
-
       <svg width={size} height={size} className="transform -rotate-90">
-        {/* Background Track */}
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="rgba(255, 255, 255, 0.12)"
+          stroke="rgba(15, 23, 42, 0.08)"
           strokeWidth={strokeWidth}
           fill="transparent"
         />
 
-        {/* Progress Circle */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -65,15 +55,14 @@ export const AnimatedTimerRing: React.FC<AnimatedTimerRingProps> = ({
         />
       </svg>
 
-      {/* Numerical Countdown Display */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
         <span
-          className="text-2xl sm:text-3xl font-extrabold tracking-tight"
+          className="text-2xl sm:text-3xl font-black tracking-tight tabular-nums"
           style={{ color }}
         >
           {remainingSeconds}
         </span>
-        <span className="text-[10px] font-medium text-slate-300 -mt-1">
+        <span className="text-[10px] font-bold text-slate-500 -mt-1">
           ثانیه
         </span>
       </div>

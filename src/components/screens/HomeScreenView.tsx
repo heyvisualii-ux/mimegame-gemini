@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { GameModeId, UserProfile } from '@/types/game';
+import React from 'react';
+import Image from 'next/image';
+import { AuthState, GameModeId, UserProfile } from '@/types/game';
 import { GAME_MODES } from '@/data/seedData';
-import { UI_THEMES, UiThemeId } from '@/lib/theme';
-import { GlassCard } from '../GlassCard';
 import { MascotMimeo } from '../MascotMimeo';
 import { PantoMixLogo } from '../PantoMixLogo';
 import { soundManager } from '@/lib/sound';
+import { useAuth } from '@/context/AuthContext';
 import {
   Play,
   Sparkles,
@@ -17,69 +17,109 @@ import {
   Users,
   Brain,
   Coins,
-  ChevronLeft,
+  LogIn,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 
 interface HomeScreenViewProps {
   profile: UserProfile | null;
+  authState?: AuthState;
   selectedModeId: GameModeId;
-  currentThemeId: UiThemeId;
+  isMuted: boolean;
+  onToggleMute: () => void;
   onSelectMode: (modeId: GameModeId) => void;
   onQuickStart: () => void;
   onOpenSetup: () => void;
   onOpenAiMaster: () => void;
   onOpenProfile: () => void;
-  onOpenThemeSelector: () => void;
+  onOpenAuthModal?: () => void;
 }
 
 export const HomeScreenView: React.FC<HomeScreenViewProps> = ({
-  profile,
+  profile: propProfile,
   selectedModeId,
-  currentThemeId,
+  isMuted,
+  onToggleMute,
   onSelectMode,
   onQuickStart,
   onOpenSetup,
   onOpenAiMaster,
   onOpenProfile,
-  onOpenThemeSelector,
+  onOpenAuthModal,
 }) => {
-  const [dialogueIdx, setDialogueIdx] = useState(0);
-
-  const pantoMessages = [
-    'سلام رفقا! من «پانتو» هستم؛ امشب پانتومیم با منه! 😎',
-    'روی من بزن تا بهت انرژی بدم! کی امشب قهرمان میشه؟ 🏆',
-    'یادت نره: لب زدن ممنوعه، فقط زبان بدن و خلاقیت! 🎭',
-    'دوست داری سوژه‌ها رو هوش مصنوعی برات بسازه؟ سر بزن به AI Master! 🤖',
-  ];
+  const auth = useAuth();
+  const profile = propProfile || auth.userProfile;
+  const isAuthenticated = auth.authState === 'AUTHENTICATED' && !!auth.currentUser;
 
   const coreModes = [
-    { id: 'CLASSIC' as GameModeId, label: 'کلاسیک', icon: Theater, desc: 'پانتومیم سنتی نوبتی' },
-    { id: 'SPEED_CHALLENGE' as GameModeId, label: 'سرعتی', icon: Zap, desc: 'حداکثر حدس در زمان کم' },
-    { id: 'TEAM_BATTLE' as GameModeId, label: 'نبرد تیم‌ها', icon: Users, desc: 'کل‌کل ۲ تیم در جمع' },
-    { id: 'AI_CHALLENGE' as GameModeId, label: 'هوش مصنوعی', icon: Brain, desc: 'سوژه‌های هوشمند' },
+    { id: 'CLASSIC' as GameModeId, label: 'کلاسیک', icon: Theater },
+    { id: 'SPEED_CHALLENGE' as GameModeId, label: 'سرعتی', icon: Zap },
+    { id: 'TEAM_BATTLE' as GameModeId, label: 'نبرد تیم‌ها', icon: Users },
+    { id: 'AI_CHALLENGE' as GameModeId, label: 'هوش مصنوعی', icon: Brain },
   ];
 
   const currentModeInfo = GAME_MODES.find((m) => m.id === selectedModeId) || GAME_MODES[0];
-  const activeTheme = UI_THEMES[currentThemeId] || UI_THEMES.luxury;
 
   return (
-    <div className="space-y-6 pb-24 pt-2 animate-fadeIn max-w-sm mx-auto">
-      {/* Secluded Minimalist Top Navigation Header */}
+    <div className="space-y-5 pb-28 pt-3 animate-fadeIn max-w-sm mx-auto">
+      {/* Reference-style Clean Minimal Top Bar (Circular Avatar + Coins + Sound) */}
       <div className="flex items-center justify-between px-1">
-        <PantoMixLogo size="md" showSubtitle={false} />
-
-        <div className="flex items-center gap-1.5">
-          {/* Live UI/UX Theme Switcher Trigger */}
+        {isAuthenticated ? (
           <button
             onClick={() => {
               soundManager.playPop();
-              onOpenThemeSelector();
+              onOpenProfile();
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.1] hover:border-amber-400/40 transition-all text-xs font-bold text-amber-300"
-            title="تغییر سبک دیزاین UI/UX"
+            className="flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full bg-white shadow-[0_4px_16px_rgba(15,23,42,0.07)] border border-slate-900/[0.06] hover:scale-[1.02] transition-all"
+            title="مشاهده حساب کاربری"
           >
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: activeTheme.primaryAccent }} />
-            <span>سبک UI</span>
+            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
+              <Image
+                src={profile?.photoURL || '/pantomix_mascot.jpg'}
+                alt="پروفایل کاربر"
+                fill
+                className="object-cover"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <span className="max-w-[90px] truncate text-xs font-extrabold text-slate-900">
+              {profile?.displayName || 'پروفایل'}
+            </span>
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              soundManager.playPop();
+              if (onOpenAuthModal) {
+                onOpenAuthModal();
+              } else {
+                onOpenProfile();
+              }
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white shadow-[0_4px_16px_rgba(15,23,42,0.07)] border border-slate-900/[0.06] hover:bg-slate-50 transition-all text-xs font-extrabold text-slate-900"
+            title="ورود با حساب گوگل"
+          >
+            <LogIn className="w-3.5 h-3.5 text-blue-600" />
+            <span>ورود</span>
+          </button>
+        )}
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              soundManager.playPop();
+              onToggleMute();
+            }}
+            title={isMuted ? 'فعال‌سازی صدا' : 'قطع صدا'}
+            aria-label={isMuted ? 'فعال‌سازی صدا' : 'قطع صدا'}
+            className="w-10 h-10 rounded-full bg-white shadow-[0_4px_16px_rgba(15,23,42,0.07)] border border-slate-900/[0.06] flex items-center justify-center text-slate-800 hover:bg-slate-50 transition-all"
+          >
+            {isMuted ? (
+              <VolumeX className="w-4 h-4 text-rose-500" />
+            ) : (
+              <Volume2 className="w-4 h-4 text-slate-800" />
+            )}
           </button>
 
           <button
@@ -87,117 +127,119 @@ export const HomeScreenView: React.FC<HomeScreenViewProps> = ({
               soundManager.playPop();
               onOpenProfile();
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] hover:border-amber-400/30 transition-all text-xs font-bold text-slate-300 hover:text-white"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white shadow-[0_4px_16px_rgba(15,23,42,0.07)] border border-slate-900/[0.06] hover:bg-slate-50 transition-all text-xs font-black text-slate-900 tabular-nums"
           >
-            <Coins className="w-3.5 h-3.5 text-amber-400" />
+            <Coins className="w-4 h-4 text-amber-500" />
             <span>{profile?.coins || 100}</span>
           </button>
         </div>
       </div>
 
-      {/* Hero Character Stage (Secluded, Calmer, Focused) */}
-      <div className="flex flex-col items-center justify-center py-3 text-center space-y-3">
-        <MascotMimeo
-          expression="HAPPY"
-          size={115}
-          dialogueText={pantoMessages[dialogueIdx % pantoMessages.length]}
-          onMascotClick={() => {
-            setDialogueIdx((prev) => prev + 1);
-          }}
-        />
+      {/* Hero Stage: Bold Typographic Logo Above Character + 3D Sticker + Subtitle */}
+      <div className="flex flex-col items-center justify-center pt-2 pb-1 text-center">
+        {/* Typographic Logo directly replacing the old message bubble */}
+        <PantoMixLogo size="hero" className="relative z-0 -mb-5" />
 
-        <div className="space-y-1">
-          <h1 className="text-2xl font-black text-white tracking-tight">
-            دورهمی هوشمند با <span className="text-amber-400">PantoMix</span>
-          </h1>
-          <p className="text-xs text-slate-400 font-medium">
-            ساده، سریع و بدون پیچیدگی با یک لمس شروع کنید
-          </p>
+        {/* Character Sticker Overlapping Lower Baseline of Typographic Logo */}
+        <div className="relative z-10">
+          <MascotMimeo
+            expression="HAPPY"
+            size={132}
+            showSpeechBubble={false}
+          />
         </div>
+
+        {/* Exact Subtitle Text Below Character */}
+        <h1 className="mt-4 text-xl font-black text-[#0B0D12] tracking-tight">
+          یه پاانتومیکس بزنیم!
+        </h1>
       </div>
 
-      {/* Simplified, Flexible Mode Selector (Zero Clutter) */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-1 text-xs">
-          <span className="text-slate-400 font-semibold">حالت مسابقه:</span>
-          <span className="text-amber-400 font-bold">{currentModeInfo.titleFa}</span>
-        </div>
-
-        <div className="grid grid-cols-4 gap-1.5 p-1 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
-          {coreModes.map((mode) => {
-            const Icon = mode.icon;
-            const isSelected = selectedModeId === mode.id;
-            return (
-              <button
-                key={mode.id}
-                onClick={() => {
-                  soundManager.playPop();
-                  onSelectMode(mode.id);
-                }}
-                className={`py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-200 ${
-                  isSelected
-                    ? 'bg-amber-400 text-slate-950 font-black shadow-md scale-[1.02]'
-                    : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="text-[11px] font-bold tracking-tight">{mode.label}</span>
-              </button>
-            );
-          })}
-        </div>
+      {/* Clean White Mode Selector Segment */}
+      <div className="grid grid-cols-4 gap-1.5 p-1.5 rounded-2xl bg-white/85 backdrop-blur-sm border border-slate-900/[0.06] shadow-[0_6px_20px_rgba(15,23,42,0.05)]">
+        {coreModes.map((mode) => {
+          const Icon = mode.icon;
+          const isSelected = selectedModeId === mode.id;
+          return (
+            <button
+              key={mode.id}
+              onClick={() => {
+                soundManager.playPop();
+                onSelectMode(mode.id);
+              }}
+              className={`py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-200 whitespace-nowrap ${
+                isSelected
+                  ? 'bg-[#0B0D12] text-white font-black shadow-md'
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/70'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span className="text-[11px] font-bold tracking-tight">{mode.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Main Actions: Clean & Focused Primary CTA */}
-      <div className="space-y-2.5 pt-1">
+      {/* Primary Play CTA */}
+      <button
+        onClick={() => {
+          soundManager.playPop();
+          onQuickStart();
+        }}
+        className="w-full h-14 rounded-2xl bg-[#0B0D12] hover:bg-slate-800 text-white font-black text-base shadow-[0_14px_30px_rgba(11,13,18,0.22)] hover:-translate-y-0.5 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5"
+      >
+        <Play className="w-5 h-5 fill-current ml-0.5" />
+        <span>شروع بازی ({currentModeInfo.titleFa})</span>
+      </button>
+
+      {/* Reference-Style Numbered Feature Cards Grid (1 & 2) */}
+      <div className="grid grid-cols-2 gap-3 pt-1">
         <button
           onClick={() => {
             soundManager.playPop();
-            onQuickStart();
+            onOpenSetup();
           }}
-          className={`w-full h-14 rounded-2xl ${activeTheme.accentButtonClass} text-base hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2.5 border border-white/20`}
+          className="group relative bg-white rounded-[26px] p-4 text-right shadow-[0_10px_28px_rgba(15,23,42,0.06)] border border-slate-900/[0.06] hover:-translate-y-0.5 transition-all flex flex-col items-start justify-between overflow-hidden"
         >
-          <Play className="w-5 h-5 fill-current ml-0.5" />
-          <span>شروع بازی ({currentModeInfo.titleFa})</span>
+          <div className="w-full flex items-start justify-between mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#F4FF57] to-[#D9F99D] border border-slate-900/[0.06] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+              <SlidersHorizontal className="w-5 h-5 text-slate-900" />
+            </div>
+            <span className="font-display text-4xl leading-none font-black text-[#6C9BFF]/45 select-none">
+              ۱
+            </span>
+          </div>
+          <div>
+            <div className="text-sm font-black text-slate-900">تنظیمات تیم و زمان</div>
+            <div className="text-[11px] text-slate-500 font-medium mt-0.5 leading-snug">
+              انتخاب راند، سختی و نام تیم‌ها
+            </div>
+          </div>
         </button>
 
-        {/* Secondary Flexible Controls Row */}
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => {
-              soundManager.playPop();
-              onOpenSetup();
-            }}
-            className="py-3 px-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.15] text-slate-300 hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-2"
-          >
-            <SlidersHorizontal className="w-4 h-4 text-amber-400" />
-            <span>تنظیمات تیم و زمان</span>
-          </button>
-
-          <button
-            onClick={() => {
-              soundManager.playPop();
-              onOpenAiMaster();
-            }}
-            className="py-3 px-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-amber-400/30 text-slate-300 hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-4 h-4 text-cyan-400" />
-            <span>پیشنهاد هوش مصنوعی</span>
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            soundManager.playPop();
+            onOpenAiMaster();
+          }}
+          className="group relative bg-white rounded-[26px] p-4 text-right shadow-[0_10px_28px_rgba(15,23,42,0.06)] border border-slate-900/[0.06] hover:-translate-y-0.5 transition-all flex flex-col items-start justify-between overflow-hidden"
+        >
+          <div className="w-full flex items-start justify-between mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#89B8FF] to-[#C2DCFF] border border-slate-900/[0.06] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+              <Sparkles className="w-5 h-5 text-slate-900" />
+            </div>
+            <span className="font-display text-4xl leading-none font-black text-[#6C9BFF]/45 select-none">
+              ۲
+            </span>
+          </div>
+          <div>
+            <div className="text-sm font-black text-slate-900">پیشنهاد هوش مصنوعی</div>
+            <div className="text-[11px] text-slate-500 font-medium mt-0.5 leading-snug">
+              ساخت کلمات و چالش هوشمند
+            </div>
+          </div>
+        </button>
       </div>
-
-      {/* Minimal Status Strip */}
-      <GlassCard
-        className="p-3 border-white/[0.06] text-center"
-        gradientFrom="rgba(255, 255, 255, 0.02)"
-        gradientTo="rgba(255, 255, 255, 0.01)"
-      >
-        <p className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
-          <span>💡 نکته:</span>
-          <span>{currentModeInfo.descriptionFa}</span>
-        </p>
-      </GlassCard>
     </div>
   );
 };

@@ -28,15 +28,15 @@ export const MascotMimeo: React.FC<MascotMimeoProps> = ({
   const getExpressionData = () => {
     switch (expression) {
       case 'HAPPY':
-        return { emoji: '😎', color: '#F59E0B', defaultMsg: 'سلام رفقا! من پانتو هستم؛ آماده‌اید پانتومیم بزنیم؟' };
+        return { emoji: '😎', defaultMsg: 'سلام رفقا! من پانتو هستم؛ آماده‌اید پانتومیم بزنیم؟' };
       case 'CELEBRATING':
-        return { emoji: '🏆', color: '#10B981', defaultMsg: 'ایول! حدس طلایی! حرکات دستتون عالی بود!' };
+        return { emoji: '🏆', defaultMsg: 'ایول! حدس طلایی! حرکات دستتون عالی بود!' };
       case 'THINKING':
-        return { emoji: '🧐', color: '#F59E0B', defaultMsg: 'دارم یه سوژه درجه یک براتون آماده می‌کنم...' };
+        return { emoji: '🧐', defaultMsg: 'دارم یه سوژه درجه یک براتون آماده می‌کنم...' };
       case 'SURPRISED':
-        return { emoji: '⏱️', color: '#EF4444', defaultMsg: 'ثانیه‌های آخر نوبته! سریع‌تر نشون بده!' };
+        return { emoji: '⏱️', defaultMsg: 'ثانیه‌های آخر نوبته! سریع‌تر نشون بده!' };
       case 'ENCOURAGING':
-        return { emoji: '💪', color: '#8B5CF6', defaultMsg: 'فدای سرت رفیق! کلمه بعدی مال خودتونه!' };
+        return { emoji: '💪', defaultMsg: 'فدای سرت رفیق! کلمه بعدی مال خودتونه!' };
     }
   };
 
@@ -46,7 +46,7 @@ export const MascotMimeo: React.FC<MascotMimeoProps> = ({
   const handleClick = () => {
     soundManager.playPop();
     setIsBouncing(true);
-    setTimeout(() => setIsBouncing(false), 400);
+    setTimeout(() => setIsBouncing(false), 350);
     if (onMascotClick) {
       onMascotClick();
     }
@@ -54,59 +54,33 @@ export const MascotMimeo: React.FC<MascotMimeoProps> = ({
 
   return (
     <div className={`flex flex-col items-center justify-center select-none ${className}`}>
-      {/* Refined Minimalist Speech Bubble */}
+      {/* Optional Clean Speech Bubble (Disabled on Home Hero per user request) */}
       {showSpeechBubble && currentMsg && (
-        <div
-          className="relative mb-3 max-w-[260px] sm:max-w-[300px] px-3.5 py-2 rounded-2xl backdrop-blur-md text-center shadow-lg border transition-all duration-300 animate-fadeIn"
-          style={{
-            backgroundColor: 'rgba(18, 12, 28, 0.85)',
-            borderColor: 'rgba(245, 158, 11, 0.3)',
-          }}
-        >
-          <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-slate-200 leading-relaxed">
+        <div className="relative mb-3 max-w-[260px] sm:max-w-[290px] px-4 py-2 rounded-2xl bg-white text-center shadow-[0_10px_28px_rgba(15,23,42,0.08)] border border-slate-900/[0.07] transition-all duration-300 animate-fadeIn">
+          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-slate-800 leading-relaxed">
             <span className="text-sm">{expData.emoji}</span>
             <span>{currentMsg}</span>
           </div>
-          {/* Subtle Pointer Arrow */}
-          <div
-            className="absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px]"
-            style={{ borderTopColor: 'rgba(245, 158, 11, 0.4)' }}
-          />
+          <div className="absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-3 h-3 rotate-45 bg-white border-r border-b border-slate-900/[0.07]" />
         </div>
       )}
 
-      {/* Mascot Circle Frame */}
+      {/* 3D Sticker Character Portrait */}
       <div
         onClick={handleClick}
         style={{ width: size, height: size }}
         className={`relative cursor-pointer transition-transform duration-300 ${
-          isBouncing ? 'scale-110' : 'hover:scale-105 animate-float'
+          isBouncing ? 'scale-105' : 'hover:scale-[1.03] animate-float'
         }`}
       >
-        {/* Soft Ambient Halo */}
-        <div
-          className="absolute inset-0 rounded-full blur-lg opacity-40 transition-opacity duration-300 pointer-events-none"
-          style={{ backgroundColor: expData.color }}
-        />
-
-        {/* Character Avatar Container with Sleek Thin Border */}
-        <div className="relative w-full h-full rounded-full overflow-hidden p-[2px] bg-gradient-to-tr from-amber-400/80 via-amber-200/40 to-white/20 shadow-xl">
-          <div className="w-full h-full rounded-full overflow-hidden bg-slate-950 relative">
-            <Image
-              src="/pantomix_mascot.jpg"
-              alt="PantoMix Mascot"
-              fill
-              className="object-cover object-top"
-              priority
-            />
-          </div>
-        </div>
-
-        {/* Minimalist Floating Mood Tag */}
-        <div
-          className="absolute -bottom-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs shadow-md border border-white/20 bg-slate-900/90"
-        >
-          {expData.emoji}
+        <div className="w-full h-full rounded-[32px] overflow-hidden border-[5px] border-white bg-[#26130B] shadow-[0_18px_40px_rgba(15,23,42,0.18)] relative">
+          <Image
+            src="/pantomix_mascot.jpg"
+            alt="کاراکتر پانتومیکس"
+            fill
+            className="object-cover object-top"
+            priority
+          />
         </div>
       </div>
     </div>

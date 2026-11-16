@@ -16,23 +16,23 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   children,
   className = '',
   onClick,
-  borderColor = 'rgba(255, 255, 255, 0.12)',
-  gradientFrom = 'rgba(255, 255, 255, 0.05)',
-  gradientTo = 'rgba(255, 255, 255, 0.02)',
+  borderColor = 'rgba(15, 23, 42, 0.07)',
+  gradientFrom = '#ffffff',
+  gradientTo = '#ffffff',
   glow = false,
 }) => {
   return (
     <div
       onClick={onClick}
       style={{
-        borderColor: borderColor,
-        backgroundImage: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})`,
+        borderColor,
+        backgroundImage: `linear-gradient(180deg, ${gradientFrom}, ${gradientTo})`,
       }}
-      className={`relative backdrop-blur-xl border rounded-3xl p-4 sm:p-5 transition-all duration-300 ${
+      className={`relative bg-white border rounded-[26px] p-4 sm:p-5 transition-all duration-200 ${
         onClick
-          ? 'cursor-pointer hover:scale-[1.015] active:scale-[0.99] hover:border-amber-400/50 shadow-lg hover:shadow-amber-500/10'
-          : ''
-      } ${glow ? 'shadow-2xl shadow-purple-900/30' : 'shadow-md'} ${className}`}
+          ? 'cursor-pointer hover:-translate-y-0.5 active:scale-[0.985] shadow-[0_10px_30px_rgba(15,23,42,0.06)] hover:shadow-[0_14px_34px_rgba(15,23,42,0.1)]'
+          : 'shadow-[0_8px_28px_rgba(15,23,42,0.05)]'
+      } ${glow ? 'shadow-[0_16px_40px_rgba(15,23,42,0.1)]' : ''} ${className}`}
     >
       {children}
     </div>

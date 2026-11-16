@@ -1,0 +1,173 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile and gameplay statistics",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "username": {
+          "type": "string",
+          "maxLength": 50,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "bio": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "level": {
+          "type": "number"
+        },
+        "xp": {
+          "type": "number"
+        },
+        "coins": {
+          "type": "number"
+        },
+        "streak": {
+          "type": "number"
+        },
+        "totalGamesPlayed": {
+          "type": "number"
+        },
+        "totalScore": {
+          "type": "number"
+        },
+        "totalWins": {
+          "type": "number"
+        },
+        "totalLosses": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "username"
+      ]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Private user account metadata including email and login timestamps",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "createdAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "uid",
+        "email"
+      ]
+    },
+    "GameSession": {
+      "title": "GameSession",
+      "description": "Record of a completed party game session",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "mode": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "modeTitleFa": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "team1Name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "team2Name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "team1Score": {
+          "type": "number"
+        },
+        "team2Score": {
+          "type": "number"
+        },
+        "winnerTeamName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "durationSeconds": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "mode",
+        "team1Name",
+        "team2Name"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Stores user profile and game progression data"
+    },
+    "/users/{userId}/private/info": {
+      "schema": {
+        "$ref": "#/entities/UserPrivateInfo"
+      },
+      "description": "Stores private user account information and authentication dates"
+    },
+    "/users/{userId}/game_sessions/{sessionId}": {
+      "schema": {
+        "$ref": "#/entities/GameSession"
+      },
+      "description": "Stores historical game sessions for the user"
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": {
+        "$ref": "#/entities/GameSession"
+      },
+      "description": "Stores historical game sessions for the user"
+    }
+  }
+}

@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.uid == userId &&
+        data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 100 &&
+        data.username is string && data.username.size() >= 3 && data.username.size() <= 50 &&
+        (!('email' in data) || (data.email is string && data.email.size() <= 200)) &&
+        (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
+        (!('avatarId' in data) || (data.avatarId is string && data.avatarId.size() <= 50)) &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1000)) &&
+        (!('bio' in data) || (data.bio is string && data.bio.size() <= 500)) &&
+        (!('level' in data) || (data.level is number && data.level >= 1)) &&
+        (!('xp' in data) || (data.xp is number && data.xp >= 0)) &&
+        (!('coins' in data) || (data.coins is number && data.coins >= 0)) &&
+        (!('streak' in data) || (data.streak is number && data.streak >= 0)) &&
+        (!('totalGamesPlayed' in data) || (data.totalGamesPlayed is number && data.totalGamesPlayed >= 0)) &&
+        (!('totalCorrectGuesses' in data) || (data.totalCorrectGuesses is number && data.totalCorrectGuesses >= 0)) &&
+        (!('totalScore' in data) || (data.totalScore is number && data.totalScore >= 0)) &&
+        (!('wins' in data) || (data.wins is number && data.wins >= 0)) &&
+        (!('losses' in data) || (data.losses is number && data.losses >= 0)) &&
+        (!('totalWins' in data) || (data.totalWins is number && data.totalWins >= 0)) &&
+        (!('totalLosses' in data) || (data.totalLosses is number && data.totalLosses >= 0)) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
+        (!('lastLoginAt' in data) || (data.lastLoginAt is string && data.lastLoginAt.size() <= 64)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidUserPrivateInfo(data, userId) {
+      return data.uid == userId &&
+        data.email is string && data.email.size() > 3 && data.email.size() <= 200 &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
+        (!('lastLoginAt' in data) || (data.lastLoginAt is string && data.lastLoginAt.size() <= 64));
+    }
+
+    function isValidGameSession(data, userId, sessionId) {
+      return data.id == sessionId &&
+        data.userId == userId &&
+        data.mode is string && data.mode.size() <= 50 &&
+        data.team1Name is string && data.team1Name.size() <= 100 &&
+        data.team2Name is string && data.team2Name.size() <= 100;
+    }
+
+    // Public / Shared user profiles (Access restricted to authenticated owners, no list scraping)
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId) && incoming().uid == existing().uid;
+      allow delete: if false;
+
+      // Private account information (PII isolation)
+      match /private/info {
+        allow get: if isOwner(userId) && isValidId(userId);
+        allow list: if false;
+        allow create: if isOwner(userId) && isValidId(userId) && isValidUserPrivateInfo(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidUserPrivateInfo(incoming(), userId) && incoming().uid == existing().uid;
+        allow delete: if false;
+      }
+
+      // User game sessions subcollections
+      match /sessions/{sessionId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(sessionId) && isValidGameSession(incoming(), userId, sessionId);
+        allow update, delete: if false;
+      }
+
+      match /game_sessions/{sessionId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(sessionId) && isValidGameSession(incoming(), userId, sessionId);
+        allow update, delete: if false;
+      }
+    }
+
+    // Connection health probe endpoint (read-only ping)
+    match /test/{docId} {
+      allow get: if true;
+      allow list, write: if false;
+    }
+  }
+}

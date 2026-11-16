@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Home, Sparkles, Users, User, Volume2, VolumeX } from 'lucide-react';
+import { Home, Sparkles, MessageSquareText, User, Play } from 'lucide-react';
 import { soundManager } from '@/lib/sound';
 
 export type ActiveTab = 'home' | 'ai-master' | 'community' | 'profile';
@@ -9,59 +9,94 @@ export type ActiveTab = 'home' | 'ai-master' | 'community' | 'profile';
 interface BottomNavProps {
   activeTab: ActiveTab;
   onChangeTab: (tab: ActiveTab) => void;
-  isMuted: boolean;
-  onToggleMute: () => void;
+  onCenterPlayClick: () => void;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   onChangeTab,
-  isMuted,
-  onToggleMute,
+  onCenterPlayClick,
 }) => {
-  const tabs = [
+  const rightTabs = [
     { id: 'home' as ActiveTab, label: 'خانه', icon: Home },
-    { id: 'ai-master' as ActiveTab, label: 'AI دستیار', icon: Sparkles },
-    { id: 'community' as ActiveTab, label: 'کلمات', icon: Users },
+    { id: 'ai-master' as ActiveTab, label: 'هوش مصنوعی', icon: Sparkles },
+  ];
+
+  const leftTabs = [
+    { id: 'community' as ActiveTab, label: 'کلمات', icon: MessageSquareText },
     { id: 'profile' as ActiveTab, label: 'پروفایل', icon: User },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md bg-[#0e081c]/90 border-t border-white/[0.08] px-3 py-1.5 shadow-xl">
-      <div className="max-w-sm mx-auto flex items-center justify-around">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => {
-                soundManager.playPop();
-                onChangeTab(tab.id);
-              }}
-              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
-                isActive ? 'text-amber-400 font-black' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Icon className={`w-4 h-4 transition-transform ${isActive ? 'scale-110' : ''}`} />
-              <span className="text-[10px] mt-0.5 tracking-tight font-bold">
-                {tab.label}
-              </span>
-              {isActive && (
-                <div className="w-1 h-1 rounded-full bg-amber-400 mt-0.5" />
-              )}
-            </button>
-          );
-        })}
+    <nav
+      aria-label="منوی اصلی"
+      className="fixed bottom-4 left-0 right-0 z-50 px-4 pointer-events-none"
+    >
+      <div className="max-w-sm mx-auto flex items-center justify-center gap-3 pointer-events-auto">
+        {/* Right White Capsule Pill (RTL Start) */}
+        <div className="flex items-center gap-1 bg-white rounded-full p-1.5 shadow-[0_10px_30px_rgba(15,23,42,0.1)] border border-slate-900/[0.06]">
+          {rightTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  soundManager.playPop();
+                  onChangeTab(tab.id);
+                }}
+                title={tab.label}
+                aria-label={tab.label}
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
+                  isActive
+                    ? 'bg-slate-100 text-[#0B0D12] shadow-inner'
+                    : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                <Icon className="w-[19px] h-[19px]" strokeWidth={isActive ? 2.4 : 2} />
+              </button>
+            );
+          })}
+        </div>
 
-        {/* Quiet audio toggle */}
+        {/* Center Solid Black Circle Primary Action */}
         <button
-          onClick={onToggleMute}
-          title={isMuted ? 'فعال‌سازی صدا' : 'قطع صدا'}
-          className="p-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white transition-all"
+          onClick={() => {
+            soundManager.playPop();
+            onCenterPlayClick();
+          }}
+          title="شروع سریع بازی"
+          aria-label="شروع سریع بازی"
+          className="w-14 h-14 rounded-full bg-[#0B0D12] hover:bg-slate-800 text-white shadow-[0_14px_30px_rgba(11,13,18,0.28)] flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0"
         >
-          {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-slate-300" />}
+          <Play className="w-5 h-5 fill-current ml-0.5" />
         </button>
+
+        {/* Left White Capsule Pill (RTL End) */}
+        <div className="flex items-center gap-1 bg-white rounded-full p-1.5 shadow-[0_10px_30px_rgba(15,23,42,0.1)] border border-slate-900/[0.06]">
+          {leftTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  soundManager.playPop();
+                  onChangeTab(tab.id);
+                }}
+                title={tab.label}
+                aria-label={tab.label}
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
+                  isActive
+                    ? 'bg-slate-100 text-[#0B0D12] shadow-inner'
+                    : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                <Icon className="w-[19px] h-[19px]" strokeWidth={isActive ? 2.4 : 2} />
+              </button>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

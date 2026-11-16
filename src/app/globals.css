@@ -12,8 +12,8 @@
   body {
     font-family: 'Vazirmatn', 'VazirmatnLocal', system-ui, -apple-system, sans-serif;
     direction: rtl;
-    background-color: #0c0517;
-    color: #ffffff;
+    background-color: #ffffff;
+    color: #0b0d12;
     min-height: 100vh;
     overflow-x: hidden;
   }
@@ -25,10 +25,10 @@
 
 @keyframes float {
   0%, 100% {
-    transform: translateY(-4px);
+    transform: translateY(-3px);
   }
   50% {
-    transform: translateY(6px);
+    transform: translateY(4px);
   }
 }
 
@@ -44,29 +44,100 @@
 }
 
 .animate-float {
-  animation: float 3s ease-in-out infinite;
+  animation: float 3.2s ease-in-out infinite;
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-spin-slow {
   animation: spin 8s linear infinite;
 }
 
-/* Custom scrollbars */
+/* CSS Celebration Animations */
+@keyframes victoryGlowPulse {
+  0%, 100% {
+    box-shadow: 0 12px 32px rgba(245, 158, 11, 0.22), 0 0 40px rgba(244, 255, 87, 0.35);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 16px 45px rgba(245, 158, 11, 0.42), 0 0 70px rgba(244, 255, 87, 0.55);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes haloPulse {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0.7;
+  }
+}
+
+@keyframes shimmerSweep {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(250%) skewX(-20deg);
+  }
+}
+
+@keyframes cssConfettiFall {
+  0% {
+    transform: translateY(-40px) rotate(0deg) scale(0.6);
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(105vh) rotate(720deg) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes trophyFloatBurst {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-7px) scale(1.07);
+  }
+}
+
+.animate-victory-pulse {
+  animation: victoryGlowPulse 2.6s ease-in-out infinite;
+}
+
+.animate-halo-pulse {
+  animation: haloPulse 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmerSweep 3.2s ease-in-out infinite;
+}
+
+.animate-trophy-burst {
+  animation: trophyFloatBurst 2s ease-in-out infinite;
+}
+
+/* Clean Light Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(12, 5, 23, 0.8);
+  background: rgba(15, 23, 42, 0.04);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 202, 40, 0.3);
+  background: rgba(15, 23, 42, 0.16);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 202, 40, 0.6);
+  background: rgba(15, 23, 42, 0.32);
 }

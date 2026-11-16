@@ -33,20 +33,22 @@ import { ResultsView } from '@/components/screens/ResultsView';
 import { AiMasterView } from '@/components/screens/AiMasterView';
 import { CommunityView } from '@/components/screens/CommunityView';
 import { ProfileView } from '@/components/screens/ProfileView';
-import { ThemeSelectorModal } from '@/components/ThemeSelectorModal';
-import { UI_THEMES, UiThemeId } from '@/lib/theme';
+import { AuthModal } from '@/components/AuthModal';
+import { useAuth } from '@/context/AuthContext';
+import { saveUserGameSessionToFirestore } from '@/lib/userProfileService';
 
 type ScreenState = 'HOME' | 'SETUP' | 'GAMEPLAY' | 'RESULTS';
 
 export default function MimeMasterApp() {
+  const auth = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [screenState, setScreenState] = useState<ScreenState>('HOME');
   const [isMuted, setIsMuted] = useState(false);
-  const [currentThemeId, setCurrentThemeId] = useState<UiThemeId>('luxury');
-  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Persistent user and game state
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [localProfile, setLocalProfile] = useState<UserProfile | null>(null);
+  const profile = auth.userProfile || localProfile;
   const [achievements, setAchievements] = useState(getStoredAchievements());
   const [sessions, setSessions] = useState<GameSession[]>([]);
   const [communityWords, setCommunityWords] = useState(getStoredCommunityWords());
@@ -86,19 +88,11 @@ export default function MimeMasterApp() {
 
   // Load storage on client mount
   useEffect(() => {
-    setProfile(getStoredProfile());
+    setLocalProfile(getStoredProfile());
     setAchievements(getStoredAchievements());
     setSessions(getStoredSessions());
     setCommunityWords(getStoredCommunityWords());
     setAllWords(getAllWords());
-    try {
-      const savedTheme = localStorage.getItem('pantomix_theme_id') as UiThemeId;
-      if (savedTheme && UI_THEMES[savedTheme]) {
-        setCurrentThemeId(savedTheme);
-      }
-    } catch {
-      // safe fallback
-    }
   }, []);
 
   // Timer Tick Effect
@@ -260,7 +254,7 @@ export default function MimeMasterApp() {
       earnedCoins,
       correctGuessesInSession
     );
-    setProfile(updatedProfile);
+    setLocalProfile(updatedProfile);
     setAchievements(unlockedAchievements);
 
     const session: GameSession = {
@@ -279,6 +273,32 @@ export default function MimeMasterApp() {
 
     const updatedSessions = saveSession(session);
     setSessions(updatedSessions);
+
+    // If authenticated, sync session and stats to Firestore
+    if (auth.currentUser) {
+      saveUserGameSessionToFirestore(auth.currentUser.uid, session).catch((err) => {
+        console.warn('Could not save session to Firestore:', err);
+      });
+      auth
+        .updateProfileData({
+          xp: updatedProfile.xp,
+          coins: updatedProfile.coins,
+          level: updatedProfile.level,
+          totalGamesPlayed: (profile?.totalGamesPlayed || 0) + 1,
+          totalCorrectGuesses:
+            (profile?.totalCorrectGuesses || 0) + correctGuessesInSession,
+          wins:
+            winnerName === team1Name
+              ? (profile?.wins || 0) + 1
+              : profile?.wins || 0,
+          losses:
+            winnerName === team2Name
+              ? (profile?.losses || 0) + 1
+              : profile?.losses || 0,
+          totalScore: (profile?.totalScore || 0) + team1Score + team2Score,
+        })
+        .catch(() => {});
+    }
 
     setScreenState('RESULTS');
   };
@@ -380,59 +400,62 @@ export default function MimeMasterApp() {
 
   const selectedModeInfo =
     GAME_MODES.find((m) => m.id === selectedModeId) || GAME_MODES[0];
-  const activeTheme = UI_THEMES[currentThemeId] || UI_THEMES.luxury;
+
+  const backdropGradient =
+    activeTab === 'profile'
+      ? 'linear-gradient(180deg, #6FA8FF 0%, #C6DFFF 42%, #FFFFFF 78%)'
+      : activeTab === 'ai-master' || activeTab === 'community'
+      ? 'linear-gradient(180deg, #D9FF54 0%, #EEFFB3 42%, #FFFFFF 78%)'
+      : 'linear-gradient(180deg, #F4FF57 0%, #FAFFD0 42%, #FFFFFF 78%)';
 
   return (
-    <div
-      className="relative pb-16 transition-colors duration-500 min-h-screen -mx-4 px-4"
-      style={{ backgroundColor: activeTheme.bgHex }}
-    >
-      {/* Dynamic Ambient Theme Glow */}
+    <div className="relative pb-24 min-h-screen -mx-4 px-4 bg-white text-slate-950">
+      {/* Top Sunlit Pastel-to-White Reference Gradient */}
       <div
-        className="fixed inset-0 pointer-events-none transition-all duration-700 opacity-60 z-0"
-        style={{
-          background: `radial-gradient(circle at 50% 15%, ${activeTheme.glowColor} 0%, transparent 65%)`,
-        }}
+        className="fixed inset-x-0 top-0 h-[520px] pointer-events-none transition-all duration-500 z-0"
+        style={{ background: backdropGradient }}
       />
-      {/* Tab routing */}
-      {activeTab === 'ai-master' ? (
-        <AiMasterView
-          onStartWithRecommendation={handleStartWithAiRecommendation}
-          onCustomWordsGenerated={handleCustomWordsAdded}
-          onBack={() => setActiveTab('home')}
-        />
-      ) : activeTab === 'community' ? (
-        <CommunityView
-          communityWords={communityWords}
-          onSubmitWord={handleCommunitySubmit}
-          onUpvote={handleCommunityUpvote}
-          onBack={() => setActiveTab('home')}
-        />
-      ) : activeTab === 'profile' ? (
-        <ProfileView
-          profile={profile}
-          achievements={achievements}
-          sessions={sessions}
-          onBack={() => setActiveTab('home')}
-        />
-      ) : (
-        /* Home Tab Screen Router */
-        <>
-          {screenState === 'HOME' && (
-            <HomeScreenView
-              profile={profile}
-              selectedModeId={selectedModeId}
-              currentThemeId={currentThemeId}
-              onSelectMode={(modeId) => {
-                setSelectedModeId(modeId);
-              }}
-              onQuickStart={handleQuickStart}
-              onOpenSetup={() => setScreenState('SETUP')}
-              onOpenAiMaster={() => setActiveTab('ai-master')}
-              onOpenProfile={() => setActiveTab('profile')}
-              onOpenThemeSelector={() => setIsThemeModalOpen(true)}
-            />
-          )}
+      <div className="relative z-10">
+        {/* Tab routing */}
+        {activeTab === 'ai-master' ? (
+          <AiMasterView
+            onStartWithRecommendation={handleStartWithAiRecommendation}
+            onCustomWordsGenerated={handleCustomWordsAdded}
+            onBack={() => setActiveTab('home')}
+          />
+        ) : activeTab === 'community' ? (
+          <CommunityView
+            communityWords={communityWords}
+            onSubmitWord={handleCommunitySubmit}
+            onUpvote={handleCommunityUpvote}
+            onBack={() => setActiveTab('home')}
+          />
+        ) : activeTab === 'profile' ? (
+          <ProfileView
+            profile={profile}
+            achievements={achievements}
+            sessions={sessions}
+            onBack={() => setActiveTab('home')}
+          />
+        ) : (
+          /* Home Tab Screen Router */
+          <>
+            {screenState === 'HOME' && (
+              <HomeScreenView
+                profile={profile}
+                selectedModeId={selectedModeId}
+                isMuted={isMuted}
+                onToggleMute={handleToggleMute}
+                onSelectMode={(modeId) => {
+                  setSelectedModeId(modeId);
+                }}
+                onQuickStart={handleQuickStart}
+                onOpenSetup={() => setScreenState('SETUP')}
+                onOpenAiMaster={() => setActiveTab('ai-master')}
+                onOpenProfile={() => setActiveTab('profile')}
+                onOpenAuthModal={() => setIsAuthModalOpen(true)}
+              />
+            )}
 
           {screenState === 'SETUP' && (
             <GameSetupView
@@ -501,32 +524,26 @@ export default function MimeMasterApp() {
               onGoHome={() => setScreenState('HOME')}
             />
           )}
-        </>
-      )}
+          </>
+        )}
+      </div>
 
-      {/* Persistent Bottom Navigation (hidden during active gameplay turn to give maximum focus, visible when paused or in any other view) */}
+      {/* Persistent Bottom Navigation (hidden during active gameplay turn to give maximum focus) */}
       {!(screenState === 'GAMEPLAY' && activeTab === 'home') && (
         <BottomNav
           activeTab={activeTab}
           onChangeTab={setActiveTab}
-          isMuted={isMuted}
-          onToggleMute={handleToggleMute}
+          onCenterPlayClick={() => {
+            setActiveTab('home');
+            handleQuickStart();
+          }}
         />
       )}
 
-      {/* Live UI/UX Theme Switcher Modal */}
-      <ThemeSelectorModal
-        currentThemeId={currentThemeId}
-        isOpen={isThemeModalOpen}
-        onClose={() => setIsThemeModalOpen(false)}
-        onSelectTheme={(themeId) => {
-          setCurrentThemeId(themeId);
-          try {
-            localStorage.setItem('pantomix_theme_id', themeId);
-          } catch {
-            // safe fallback
-          }
-        }}
+      {/* Google Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
       />
     </div>
   );

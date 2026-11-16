@@ -29,7 +29,7 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
   const [playerCount, setPlayerCount] = useState(4);
   const [groupType, setGroupType] = useState<'FRIENDS' | 'FAMILY' | 'WORK' | 'KIDS'>('FRIENDS');
   const [mood, setMood] = useState<'FUNNY' | 'COMPETITIVE' | 'ENERGETIC'>('FUNNY');
-  const [availableMinutes, setAvailableMinutes] = useState(30);
+  const [availableMinutes] = useState(30);
 
   const [isLoadingRec, setIsLoadingRec] = useState(false);
   const [recommendation, setRecommendation] = useState<AiGameRecommendation | null>(null);
@@ -94,32 +94,31 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
   };
 
   return (
-    <div className="space-y-4 pb-24 pt-1 animate-fadeIn max-w-sm mx-auto">
+    <div className="space-y-4 pb-28 pt-3 animate-fadeIn max-w-sm mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+      <div className="flex items-center justify-between pb-1">
         <button
           onClick={() => {
             soundManager.playPop();
             onBack();
           }}
-          className="p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-bold"
+          className="w-10 h-10 rounded-full bg-white shadow-[0_4px_16px_rgba(15,23,42,0.07)] border border-slate-900/[0.06] hover:bg-slate-50 text-slate-900 transition-all flex items-center justify-center"
+          aria-label="بازگشت"
         >
-          <ArrowRight className="w-4 h-4 ml-0.5" />
-          <span>بازگشت</span>
+          <ArrowRight className="w-4 h-4" />
         </button>
 
-        <h1 className="text-sm font-black text-white flex items-center gap-1.5">
-          <span>دستیار هوشمند PantoMix AI</span>
-          <span>🤖</span>
+        <h1 className="text-lg font-black text-[#0B0D12]">
+          دستیار هوشمند PantoMix
         </h1>
 
-        <div className="w-14" />
+        <div className="w-10" />
       </div>
 
       {/* Mascot Intro */}
       <MascotMimeo
         expression={isLoadingRec ? 'THINKING' : 'HAPPY'}
-        size={84}
+        size={88}
         dialogueText={
           isLoadingRec
             ? 'پانتو در حال تحلیل و آماده‌سازی پیشنهاد اختصاصی دورهمی...'
@@ -128,12 +127,12 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
       />
 
       {/* Group Parameters */}
-      <GlassCard className="p-4 space-y-3 border-white/[0.08]">
+      <GlassCard className="p-4 space-y-3.5">
         {/* Player Count */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-300 font-semibold">تعداد بازیکنان:</span>
-            <span className="text-amber-400 font-black">{playerCount} نفر</span>
+            <span className="text-slate-700 font-bold">تعداد بازیکنان:</span>
+            <span className="text-[#0B0D12] font-black tabular-nums">{playerCount} نفر</span>
           </div>
           <input
             type="range"
@@ -141,14 +140,14 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
             max={16}
             value={playerCount}
             onChange={(e) => setPlayerCount(Number(e.target.value))}
-            className="w-full accent-amber-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+            className="w-full accent-[#0B0D12] h-1.5 bg-slate-200 rounded-lg cursor-pointer"
           />
         </div>
 
         {/* Group Type */}
-        <div className="space-y-1">
-          <span className="text-xs text-slate-400 font-semibold block">نوع جمع:</span>
-          <div className="grid grid-cols-4 gap-1">
+        <div className="space-y-1.5">
+          <span className="text-xs text-slate-700 font-bold block">نوع جمع:</span>
+          <div className="grid grid-cols-4 gap-1.5">
             {[
               { id: 'FRIENDS', label: 'دوستانه' },
               { id: 'FAMILY', label: 'خانواده' },
@@ -159,12 +158,12 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
                 key={g.id}
                 onClick={() => {
                   soundManager.playPop();
-                  setGroupType(g.id as any);
+                  setGroupType(g.id as 'FRIENDS' | 'FAMILY' | 'WORK' | 'KIDS');
                 }}
-                className={`py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                className={`py-2 rounded-xl text-xs font-bold transition-all ${
                   groupType === g.id
-                    ? 'bg-amber-400 text-slate-950 border-amber-300 font-black'
-                    : 'bg-white/[0.02] text-slate-400 border-white/[0.06] hover:bg-white/[0.05]'
+                    ? 'bg-[#0B0D12] text-white font-black shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
                 }`}
               >
                 {g.label}
@@ -174,9 +173,9 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
         </div>
 
         {/* Mood */}
-        <div className="space-y-1">
-          <span className="text-xs text-slate-400 font-semibold block">فضای بازی:</span>
-          <div className="grid grid-cols-3 gap-1">
+        <div className="space-y-1.5">
+          <span className="text-xs text-slate-700 font-bold block">فضای بازی:</span>
+          <div className="grid grid-cols-3 gap-1.5">
             {[
               { id: 'FUNNY', label: 'خنده‌دار 😂' },
               { id: 'COMPETITIVE', label: 'رقابتی 🔥' },
@@ -186,12 +185,12 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
                 key={m.id}
                 onClick={() => {
                   soundManager.playPop();
-                  setMood(m.id as any);
+                  setMood(m.id as 'FUNNY' | 'COMPETITIVE' | 'ENERGETIC');
                 }}
-                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all border ${
+                className={`py-2 rounded-xl text-[11px] font-bold transition-all ${
                   mood === m.id
-                    ? 'bg-amber-400 text-slate-950 border-amber-300 font-black'
-                    : 'bg-white/[0.02] text-slate-400 border-white/[0.06] hover:bg-white/[0.05]'
+                    ? 'bg-[#0B0D12] text-white font-black shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
                 }`}
               >
                 {m.label}
@@ -204,16 +203,16 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
         <button
           onClick={handleAnalyze}
           disabled={isLoadingRec}
-          className="w-full h-11 rounded-xl bg-amber-400 text-slate-950 font-black text-xs shadow-md hover:bg-amber-300 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 mt-1"
+          className="w-full h-12 rounded-2xl bg-[#0B0D12] hover:bg-slate-800 text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 mt-1"
         >
           {isLoadingRec ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>در حال تحلیل با Gemini...</span>
+              <span>در حال تحلیل با هوش مصنوعی...</span>
             </>
           ) : (
             <>
-              <Brain className="w-4 h-4" />
+              <Brain className="w-4 h-4 text-[#D9FF54]" />
               <span>تحلیل هوشمند و پیشنهاد بازی</span>
             </>
           )}
@@ -222,24 +221,26 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
 
       {/* AI Recommendation Box */}
       {recommendation && (
-        <GlassCard className="p-3.5 space-y-2.5 border-amber-400/40 animate-fadeIn bg-amber-400/[0.03]">
+        <GlassCard className="p-4 space-y-3 border-slate-900/15 animate-fadeIn">
           <div className="flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <h3 className="text-xs font-black text-amber-300">پیشنهاد هوش مصنوعی:</h3>
+            <Sparkles className="w-4 h-4 text-blue-600" />
+            <h3 className="text-xs font-black text-slate-900">پیشنهاد هوش مصنوعی:</h3>
           </div>
 
-          <p className="text-xs text-slate-200 leading-relaxed bg-black/30 p-2.5 rounded-xl border border-white/5">
+          <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
             {recommendation.mimeoGreeting}
           </p>
 
-          <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-            <div className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-              <span className="text-slate-400 block">حالت پیشنهادی:</span>
-              <span className="font-bold text-amber-300">{recommendation.recommendedModeTitle}</span>
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+              <span className="text-slate-500 block">حالت پیشنهادی:</span>
+              <span className="font-black text-slate-900">{recommendation.recommendedModeTitle}</span>
             </div>
-            <div className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-              <span className="text-slate-400 block">تنظیمات:</span>
-              <span className="font-bold text-white">{recommendation.targetRounds} راند ({recommendation.roundTimerSeconds} ثانیه)</span>
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+              <span className="text-slate-500 block">تنظیمات:</span>
+              <span className="font-black text-slate-900 tabular-nums">
+                {recommendation.targetRounds} راند ({recommendation.roundTimerSeconds} ثانیه)
+              </span>
             </div>
           </div>
 
@@ -248,7 +249,7 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
               soundManager.playPop();
               onStartWithRecommendation(recommendation);
             }}
-            className="w-full h-11 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
+            className="w-full h-12 rounded-2xl bg-[#0B0D12] hover:bg-slate-800 text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
           >
             <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
             <span>شروع بازی با این پیشنهاد</span>
@@ -257,33 +258,33 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
       )}
 
       {/* Custom Topic Generator */}
-      <GlassCard className="p-3.5 space-y-2.5 border-white/[0.08]">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
-          <PenTool className="w-3.5 h-3.5 text-amber-400" />
+      <GlassCard className="p-4 space-y-2.5">
+        <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-800">
+          <PenTool className="w-3.5 h-3.5 text-blue-600" />
           <span>تولید کلمات اختصاصی با موضوع دلخواه</span>
         </div>
 
-        <div className="flex gap-1.5">
+        <div className="flex gap-2">
           <input
             type="text"
             value={customTopic}
             onChange={(e) => setCustomTopic(e.target.value)}
             placeholder="مثال: دیالوگ‌های طنز، نوستالژی دهه ۶۰..."
-            className="flex-1 px-3 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400 transition-colors"
+            className="flex-1 px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-slate-900 transition-colors"
           />
 
           <button
             onClick={handleGenerateWords}
             disabled={!customTopic.trim() || isLoadingWords}
-            className="px-3.5 py-2 rounded-xl bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs font-bold hover:bg-amber-400/25 transition-all disabled:opacity-40 shrink-0"
+            className="px-4 py-2 rounded-xl bg-[#0B0D12] text-white text-xs font-bold hover:bg-slate-800 transition-all disabled:opacity-40 shrink-0"
           >
             {isLoadingWords ? <Loader2 className="w-4 h-4 animate-spin" /> : 'تولید کلمه'}
           </button>
         </div>
 
         {generatedWordsMessage && (
-          <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-400/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5 animate-fadeIn">
-            <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+          <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-1.5 animate-fadeIn">
+            <CheckCircle className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
             <span>{generatedWordsMessage}</span>
           </div>
         )}
