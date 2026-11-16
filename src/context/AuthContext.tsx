@@ -2,7 +2,12 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
-import { auth, googleProvider, testConnection } from '@/lib/firebase';
+import {
+  auth,
+  ensureFirestoreNetworkEnabled,
+  googleProvider,
+  testConnection,
+} from '@/lib/firebase';
 import { UserProfile } from '@/types/game';
 import { getStoredProfile, saveProfile } from '@/lib/storage';
 import {
@@ -41,9 +46,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Initial connection test and auth state listener
   useEffect(() => {
-    testConnection().catch((err) => {
+    const connectionProbePromise = testConnection().catch((err) => {
       console.warn('Initial connection probe:', err);
+      return false;
     });
+
+    const handleOnline = () => {
+      testConnection().catch(() => {});
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleOnline);
+    }
 
     const unsubscribe = onAuthStateChanged(
       auth,
@@ -53,12 +66,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setAuthState('PROFILE_LOADING');
           try {
             const localProgress = getStoredProfile();
+            const isReachable = await connectionProbePromise;
+            if (!isReachable) {
+              throw new Error('Firestore backend currently unreachable');
+            }
             const profile = await syncOrCreateUserProfile(firebaseUser, localProgress);
             setUserProfile(profile);
             setAuthState('AUTHENTICATED');
             setAuthError(null);
           } catch (err) {
-            console.error('Error fetching Firestore profile:', err);
+            console.warn('Using local fallback profile:', err);
             // Fallback to local profile with user display name
             const local = getStoredProfile();
             const fallback: UserProfile = {
@@ -87,7 +104,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleOnline);
+      }
+    };
   }, []);
 
   const loginWithGoogle = async (): Promise<boolean> => {
@@ -99,6 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(firebaseUser);
       setAuthState('PROFILE_LOADING');
 
+      await ensureFirestoreNetworkEnabled();
       const localProgress = getStoredProfile();
       const profile = await syncOrCreateUserProfile(firebaseUser, localProgress);
       setUserProfile(profile);
@@ -156,6 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      await ensureFirestoreNetworkEnabled();
       const updated = await updateUserProfileInFirestore(currentUser.uid, updates);
       setUserProfile(updated);
       return true;
@@ -169,6 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshProfile = async (): Promise<void> => {
     if (!currentUser) return;
     try {
+      await ensureFirestoreNetworkEnabled();
       const profile = await fetchUserProfileFromFirestore(currentUser.uid);
       if (profile) {
         setUserProfile(profile);

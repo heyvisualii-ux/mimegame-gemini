@@ -8,6 +8,7 @@ import { MascotMimeo } from '../MascotMimeo';
 import { PantoMixLogo } from '../PantoMixLogo';
 import { soundManager } from '@/lib/sound';
 import { useAuth } from '@/context/AuthContext';
+import { PWAInstallButton } from '../PWAInstallButton';
 import {
   Play,
   Sparkles,
@@ -106,6 +107,7 @@ export const HomeScreenView: React.FC<HomeScreenViewProps> = ({
         )}
 
         <div className="flex items-center gap-2">
+          <PWAInstallButton variant="compact" />
           <button
             onClick={() => {
               soundManager.playPop();

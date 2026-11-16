@@ -8,6 +8,7 @@ import { GlassCard } from '../GlassCard';
 import { LevelBadgeView } from '../LevelBadgeView';
 import { EditProfileModal } from '../EditProfileModal';
 import { AuthModal } from '../AuthModal';
+import { PWAInstallButton } from '../PWAInstallButton';
 import { soundManager } from '@/lib/sound';
 import {
   Trophy,
@@ -220,6 +221,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </button>
         </GlassCard>
       )}
+
+      {/* Android / iOS Install Card */}
+      <PWAInstallButton variant="card" />
 
       {/* Level and XP Card */}
       <LevelBadgeView profile={profile} />

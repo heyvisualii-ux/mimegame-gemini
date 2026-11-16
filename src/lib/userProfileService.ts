@@ -45,7 +45,8 @@ export async function syncOrCreateUserProfile(
     const displayName = firebaseUser.displayName || 'بازیکن پانتومیکس';
     const email = firebaseUser.email || '';
     const photoURL = firebaseUser.photoURL || '';
-    const generatedUsername = email ? email.split('@')[0].slice(0, 30) : `player_${uid.slice(0, 6)}`;
+    const rawPrefix = email ? email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30) : '';
+    const generatedUsername = rawPrefix.length >= 3 ? rawPrefix : `player_${uid.slice(0, 6)}`;
 
     if (!existing) {
       // First-time login: create new profile merged with local guest progress

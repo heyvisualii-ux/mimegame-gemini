@@ -5,6 +5,8 @@ import {
   getFirestore,
   doc,
   getDocFromServer,
+  disableNetwork,
+  enableNetwork,
   Firestore,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -12,17 +14,21 @@ import firebaseConfig from '../../firebase-applet-config.json';
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 // CRITICAL: The app requires firebaseConfig.firestoreDatabaseId.
-// We configure long-polling transport (`experimentalForceLongPolling: true`)
-// to prevent the 10-second backend timeout warning in browser iframes / proxy environments.
+// Browser-only transport settings must only be passed on the client (never during Node SSR).
 let firestoreInstance: Firestore;
 try {
-  firestoreInstance = initializeFirestore(
-    app,
-    {
-      experimentalForceLongPolling: true,
-    },
-    firebaseConfig.firestoreDatabaseId
-  );
+  if (typeof window !== 'undefined') {
+    firestoreInstance = initializeFirestore(
+      app,
+      {
+        experimentalAutoDetectLongPolling: true,
+        ignoreUndefinedProperties: true,
+      },
+      firebaseConfig.firestoreDatabaseId
+    );
+  } else {
+    firestoreInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  }
 } catch {
   firestoreInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 }
@@ -79,11 +85,39 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
+export async function ensureFirestoreNetworkEnabled(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    await enableNetwork(db);
+  } catch {
+    // Ignore if already enabled or offline
+  }
+}
+
 // Connection test per skill directive
 export async function testConnection(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    await disableNetwork(db).catch(() => {});
+    return false;
+  }
+
   try {
+    // Fast pre-flight reachability check so blocked/filtered networks do not leave
+    // Firestore's internal 10-second WatchStream timer dangling in the background.
+    const controller = new AbortController();
+    const abortTimer = setTimeout(() => controller.abort(), 3500);
+    const probeUrl = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/${firebaseConfig.firestoreDatabaseId}/documents/test/connection?key=${firebaseConfig.apiKey}`;
+    try {
+      await fetch(probeUrl, { method: 'GET', signal: controller.signal });
+    } finally {
+      clearTimeout(abortTimer);
+    }
+
+    await enableNetwork(db).catch(() => {});
+
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('the client is offline or timed out')), 2500)
+      setTimeout(() => reject(new Error('the client is offline or timed out')), 4000)
     );
     await Promise.race([
       getDocFromServer(doc(db, 'test', 'connection')),
@@ -91,6 +125,8 @@ export async function testConnection(): Promise<boolean> {
     ]);
     return true;
   } catch (error) {
+    // Cancel pending WatchStream retries if backend is unreachable so the 10s SDK error isn't emitted
+    await disableNetwork(db).catch(() => {});
     if (error instanceof Error && error.message.includes('the client is offline')) {
       console.warn('Firebase client is offline or waiting for network');
     }
