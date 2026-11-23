@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import {
   AiGameRecommendation,
   Category,
@@ -25,17 +26,40 @@ import {
   upvoteCommunityWord,
 } from '@/lib/storage';
 import { soundManager } from '@/lib/sound';
+import { requestAiReaction } from '@/lib/aiClient';
+import { registerAndroidBackHandler } from '@/lib/capacitor';
 import { ActiveTab, BottomNav } from '@/components/BottomNav';
 import { HomeScreenView } from '@/components/screens/HomeScreenView';
-import { GameSetupView } from '@/components/screens/GameSetupView';
-import { GameplayView } from '@/components/screens/GameplayView';
-import { ResultsView } from '@/components/screens/ResultsView';
-import { AiMasterView } from '@/components/screens/AiMasterView';
-import { CommunityView } from '@/components/screens/CommunityView';
-import { ProfileView } from '@/components/screens/ProfileView';
-import { AuthModal } from '@/components/AuthModal';
 import { useAuth } from '@/context/AuthContext';
-import { saveUserGameSessionToFirestore } from '@/lib/userProfileService';
+
+const GameSetupView = dynamic(
+  () => import('@/components/screens/GameSetupView').then((m) => m.GameSetupView),
+  { ssr: false }
+);
+const GameplayView = dynamic(
+  () => import('@/components/screens/GameplayView').then((m) => m.GameplayView),
+  { ssr: false }
+);
+const ResultsView = dynamic(
+  () => import('@/components/screens/ResultsView').then((m) => m.ResultsView),
+  { ssr: false }
+);
+const AiMasterView = dynamic(
+  () => import('@/components/screens/AiMasterView').then((m) => m.AiMasterView),
+  { ssr: false }
+);
+const CommunityView = dynamic(
+  () => import('@/components/screens/CommunityView').then((m) => m.CommunityView),
+  { ssr: false }
+);
+const ProfileView = dynamic(
+  () => import('@/components/screens/ProfileView').then((m) => m.ProfileView),
+  { ssr: false }
+);
+const AuthModal = dynamic(
+  () => import('@/components/AuthModal').then((m) => m.AuthModal),
+  { ssr: false }
+);
 
 type ScreenState = 'HOME' | 'SETUP' | 'GAMEPLAY' | 'RESULTS';
 
@@ -85,6 +109,53 @@ export default function MimeMasterApp() {
   const [mimeoReaction, setMimeoReaction] = useState('روی کارت بزنید تا کلمه رونمایی بشه!');
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const navStateRef = useRef({
+    isAuthModalOpen: false,
+    activeTab: 'home' as ActiveTab,
+    screenState: 'HOME' as ScreenState,
+  });
+
+  useEffect(() => {
+    navStateRef.current = { isAuthModalOpen, activeTab, screenState };
+  }, [isAuthModalOpen, activeTab, screenState]);
+
+  // Register Android hardware back button handling
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    let active = true;
+
+    registerAndroidBackHandler(() => {
+      const current = navStateRef.current;
+      if (current.isAuthModalOpen) {
+        setIsAuthModalOpen(false);
+        return true;
+      }
+      if (current.activeTab !== 'home') {
+        setActiveTab('home');
+        return true;
+      }
+      if (current.screenState === 'SETUP' || current.screenState === 'RESULTS') {
+        setScreenState('HOME');
+        return true;
+      }
+      if (current.screenState === 'GAMEPLAY') {
+        window.dispatchEvent(new CustomEvent('pantomix:android-back'));
+        return true;
+      }
+      return false;
+    }).then((remove) => {
+      if (active) {
+        cleanup = remove;
+      } else {
+        remove();
+      }
+    });
+
+    return () => {
+      active = false;
+      if (cleanup) cleanup();
+    };
+  }, []);
 
   // Load storage on client mount
   useEffect(() => {
@@ -182,25 +253,14 @@ export default function MimeMasterApp() {
       setTeam2ScoreHistory((prev) => [logEntry, ...prev].slice(0, 3));
     }
 
-    // Reaction commentary
-    try {
-      fetch('/api/ai/reaction', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          isSuccess: true,
-          score: (activeTeamIndex === 0 ? team1Score : team2Score) + points,
-          combo: newCombo,
-        }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.reaction) setMimeoReaction(data.reaction);
-        })
-        .catch(() => {});
-    } catch {
-      // safe fallback
-    }
+    // Reaction commentary with timeout/offline safety
+    requestAiReaction({
+      isSuccess: true,
+      score: (activeTeamIndex === 0 ? team1Score : team2Score) + points,
+      combo: newCombo,
+    }).then((reaction) => {
+      if (reaction) setMimeoReaction(reaction);
+    });
 
     // Advance to next word
     setShowHint(false);
@@ -212,24 +272,13 @@ export default function MimeMasterApp() {
     setComboCount(0);
     setShowHint(false);
 
-    try {
-      fetch('/api/ai/reaction', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          isSuccess: false,
-          score: activeTeamIndex === 0 ? team1Score : team2Score,
-          combo: 0,
-        }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.reaction) setMimeoReaction(data.reaction);
-        })
-        .catch(() => {});
-    } catch {
-      // safe fallback
-    }
+    requestAiReaction({
+      isSuccess: false,
+      score: activeTeamIndex === 0 ? team1Score : team2Score,
+      combo: 0,
+    }).then((reaction) => {
+      if (reaction) setMimeoReaction(reaction);
+    });
 
     setCurrentWordIndex((prev) => (prev + 1) % Math.max(1, gameWordPool.length));
   };
@@ -276,9 +325,14 @@ export default function MimeMasterApp() {
 
     // If authenticated, sync session and stats to Firestore
     if (auth.currentUser) {
-      saveUserGameSessionToFirestore(auth.currentUser.uid, session).catch((err) => {
-        console.warn('Could not save session to Firestore:', err);
-      });
+      const uid = auth.currentUser.uid;
+      import('@/lib/userProfileService')
+        .then(({ saveUserGameSessionToFirestore }) =>
+          saveUserGameSessionToFirestore(uid, session)
+        )
+        .catch((err) => {
+          console.warn('Could not save session to Firestore:', err);
+        });
       auth
         .updateProfileData({
           xp: updatedProfile.xp,

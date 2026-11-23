@@ -30,7 +30,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   return (
     <nav
       aria-label="منوی اصلی"
-      className="fixed bottom-4 left-0 right-0 z-50 px-4 pointer-events-none"
+      className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-0 right-0 z-50 px-4 pointer-events-none"
     >
       <div className="max-w-sm mx-auto flex items-center justify-center gap-3 pointer-events-auto">
         {/* Right White Capsule Pill (RTL Start) */}

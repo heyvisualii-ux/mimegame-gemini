@@ -5,6 +5,7 @@ import { AiGameRecommendation, Word } from '@/types/game';
 import { GlassCard } from '../GlassCard';
 import { MascotMimeo } from '../MascotMimeo';
 import { soundManager } from '@/lib/sound';
+import { requestAiRecommendation, requestAiWords } from '@/lib/aiClient';
 import {
   Sparkles,
   Brain,
@@ -13,6 +14,7 @@ import {
   PenTool,
   Loader2,
   CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
 
 interface AiMasterViewProps {
@@ -33,31 +35,32 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
 
   const [isLoadingRec, setIsLoadingRec] = useState(false);
   const [recommendation, setRecommendation] = useState<AiGameRecommendation | null>(null);
+  const [recError, setRecError] = useState<string | null>(null);
 
   const [customTopic, setCustomTopic] = useState('');
   const [isLoadingWords, setIsLoadingWords] = useState(false);
   const [generatedWordsMessage, setGeneratedWordsMessage] = useState<string | null>(null);
+  const [wordsError, setWordsError] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
     soundManager.playPop();
     setIsLoadingRec(true);
+    setRecError(null);
     try {
-      const res = await fetch('/api/ai/recommend', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          playerCount,
-          groupType,
-          mood,
-          minutes: availableMinutes,
-        }),
+      const data = await requestAiRecommendation({
+        playerCount,
+        groupType,
+        mood,
+        minutes: availableMinutes,
       });
-      const data = await res.json();
-      if (data.success && data.data) {
-        setRecommendation(data.data);
-        soundManager.playSuccess();
-      }
+      setRecommendation(data);
+      soundManager.playSuccess();
     } catch (e) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : 'خطا در تحلیل هوشمند دورهمی. لطفاً دوباره تلاش کنید.';
+      setRecError(msg);
       console.error('Failed to analyze group', e);
     } finally {
       setIsLoadingRec(false);
@@ -69,24 +72,23 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
     soundManager.playPop();
     setIsLoadingWords(true);
     setGeneratedWordsMessage(null);
+    setWordsError(null);
     try {
-      const res = await fetch('/api/ai/words', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topic: customTopic,
-          count: 5,
-          difficulty: 'MEDIUM',
-        }),
+      const words = await requestAiWords({
+        topic: customTopic.trim(),
+        count: 5,
+        difficulty: 'MEDIUM',
       });
-      const data = await res.json();
-      if (data.success && data.data) {
-        onCustomWordsGenerated(data.data);
-        soundManager.playSuccess();
-        setGeneratedWordsMessage(`۵ کلمه اختصاصی هوش مصنوعی برای «${customTopic}» آماده شد!`);
-        setCustomTopic('');
-      }
+      onCustomWordsGenerated(words);
+      soundManager.playSuccess();
+      setGeneratedWordsMessage(`۵ کلمه اختصاصی هوش مصنوعی برای «${customTopic.trim()}» آماده شد!`);
+      setCustomTopic('');
     } catch (e) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : 'خطا در تولید کلمات اختصاصی. لطفاً دوباره تلاش کنید.';
+      setWordsError(msg);
       console.error('Failed to generate words', e);
     } finally {
       setIsLoadingWords(false);
@@ -217,6 +219,21 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
             </>
           )}
         </button>
+
+        {recError && (
+          <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center justify-between gap-2 animate-fadeIn">
+            <div className="flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <span>{recError}</span>
+            </div>
+            <button
+              onClick={handleAnalyze}
+              className="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[11px] font-black shrink-0"
+            >
+              تلاش مجدد
+            </button>
+          </div>
+        )}
       </GlassCard>
 
       {/* AI Recommendation Box */}
@@ -286,6 +303,21 @@ export const AiMasterView: React.FC<AiMasterViewProps> = ({
           <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-1.5 animate-fadeIn">
             <CheckCircle className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
             <span>{generatedWordsMessage}</span>
+          </div>
+        )}
+
+        {wordsError && (
+          <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center justify-between gap-2 animate-fadeIn">
+            <div className="flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <span>{wordsError}</span>
+            </div>
+            <button
+              onClick={handleGenerateWords}
+              className="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[11px] font-black shrink-0"
+            >
+              تلاش مجدد
+            </button>
           </div>
         )}
       </GlassCard>

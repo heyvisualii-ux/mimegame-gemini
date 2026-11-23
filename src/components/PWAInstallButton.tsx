@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useOnlineStatus, usePWAInstall } from '@/hooks/usePWAInstall';
+import { isCapacitorNative } from '@/lib/capacitor';
 import { soundManager } from '@/lib/sound';
 import {
   Smartphone,
@@ -24,15 +25,15 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
 
-  // Suppress button when already launched in standalone app mode
-  if (isInstalled) {
+  // Suppress button when already launched in standalone app mode or native Capacitor Android
+  if (isInstalled || isCapacitorNative()) {
     return null;
   }
 
   const appUrl =
     typeof window !== 'undefined'
       ? window.location.origin
-      : 'https://ais-pre-qpkc6eg4xxlrsa73euy5of-651613534226.europe-west2.run.app';
+      : 'https://game.dresmaeiliclinic.ir/';
 
   const handleActionClick = async () => {
     soundManager.playPop();

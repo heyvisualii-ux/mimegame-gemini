@@ -10,6 +10,8 @@ import { EditProfileModal } from '../EditProfileModal';
 import { AuthModal } from '../AuthModal';
 import { PWAInstallButton } from '../PWAInstallButton';
 import { soundManager } from '@/lib/sound';
+import { isCapacitorNative } from '@/lib/capacitor';
+import { monetizationService } from '@/lib/monetization';
 import {
   Trophy,
   Lock,
@@ -24,6 +26,7 @@ import {
   Clock,
   Copy,
   Check,
+  Crown,
 } from 'lucide-react';
 
 interface ProfileViewProps {
@@ -224,6 +227,33 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {/* Android / iOS Install Card */}
       <PWAInstallButton variant="card" />
+
+      {/* Modular Membership & Play Billing Readiness Card */}
+      {(() => {
+        const caps = monetizationService.getCapabilities(isCapacitorNative());
+        return (
+          <GlassCard className="p-3.5 flex items-center justify-between gap-3 text-right">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
+                <Crown className="w-4 h-4 text-amber-600" />
+              </div>
+              <div>
+                <div className="text-xs font-black text-slate-900">
+                  عضویت فعلی: نسخه رایگان (Free)
+                </div>
+                <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                  {caps.playBillingStatus === 'NOT_CONFIGURED'
+                    ? 'زیرساخت Google Play Billing و تبلیغات جایزه‌ای آماده اتصال به کنسول گوگل‌پلی است.'
+                    : 'خرید اشتراک پرو و تبلیغات جایزه‌ای از طریق نسخه اندروید گوگل‌پلی فعال می‌شود.'}
+                </div>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-[10px] font-black shrink-0">
+              {caps.tier}
+            </span>
+          </GlassCard>
+        );
+      })()}
 
       {/* Level and XP Card */}
       <LevelBadgeView profile={profile} />

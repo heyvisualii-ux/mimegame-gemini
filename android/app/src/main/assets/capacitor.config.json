@@ -1,0 +1,51 @@
+{
+	"appId": "com.pantomix.app",
+	"appName": "PantoMix",
+	"webDir": "mobile-shell",
+	"server": {
+		"url": "https://game.dresmaeiliclinic.ir/",
+		"cleartext": true,
+		"androidScheme": "https",
+		"errorPath": "index.html",
+		"allowNavigation": [
+			"game.dresmaeiliclinic.ir",
+			"*.dresmaeiliclinic.ir",
+			"accounts.google.com",
+			"*.firebaseapp.com",
+			"*.googleapis.com",
+			"apis.google.com"
+		]
+	},
+	"android": {
+		"allowMixedContent": true,
+		"backgroundColor": "#FFFFFF",
+		"captureInput": true,
+		"webContentsDebuggingEnabled": false
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 1500,
+			"launchAutoHide": true,
+			"backgroundColor": "#F4FF57",
+			"androidScaleType": "CENTER_CROP",
+			"showSpinner": false,
+			"splashFullScreen": false,
+			"splashImmersive": false
+		},
+		"StatusBar": {
+			"overlaysWebView": false,
+			"style": "LIGHT",
+			"backgroundColor": "#F4FF57"
+		},
+		"GoogleAuth": {
+			"scopes": [
+				"profile",
+				"email"
+			],
+			"clientId": "621467625569-4q9l23lh7jat5pg2mtjp5pbhl5gn498s.apps.googleusercontent.com",
+			"androidClientId": "621467625569-4q9l23lh7jat5pg2mtjp5pbhl5gn498s.apps.googleusercontent.com",
+			"serverClientId": "621467625569-4q9l23lh7jat5pg2mtjp5pbhl5gn498s.apps.googleusercontent.com",
+			"forceCodeForRefreshToken": true
+		}
+	}
+}

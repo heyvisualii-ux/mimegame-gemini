@@ -1,20 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
-import {
-  auth,
-  ensureFirestoreNetworkEnabled,
-  googleProvider,
-  testConnection,
-} from '@/lib/firebase';
+import type { User } from 'firebase/auth';
 import { UserProfile } from '@/types/game';
 import { getStoredProfile, saveProfile } from '@/lib/storage';
-import {
-  fetchUserProfileFromFirestore,
-  syncOrCreateUserProfile,
-  updateUserProfileInFirestore,
-} from '@/lib/userProfileService';
 
 export type AuthState =
   | 'GUEST'
@@ -41,72 +30,101 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [authState, setAuthState] = useState<AuthState>('PROFILE_LOADING');
+  const [authState, setAuthState] = useState<AuthState>('GUEST');
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Initial connection test and auth state listener
+  // Lazy-load Firebase SDK on the client after mount so app/layout.js stays lightweight
   useEffect(() => {
-    const connectionProbePromise = testConnection().catch((err) => {
-      console.warn('Initial connection probe:', err);
-      return false;
-    });
+    setUserProfile(getStoredProfile());
 
-    const handleOnline = () => {
-      testConnection().catch(() => {});
-    };
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', handleOnline);
-    }
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
+    let handleOnline: (() => void) | undefined;
 
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      async (firebaseUser) => {
-        if (firebaseUser) {
-          setCurrentUser(firebaseUser);
-          setAuthState('PROFILE_LOADING');
-          try {
-            const localProgress = getStoredProfile();
-            const isReachable = await connectionProbePromise;
-            if (!isReachable) {
-              throw new Error('Firestore backend currently unreachable');
-            }
-            const profile = await syncOrCreateUserProfile(firebaseUser, localProgress);
-            setUserProfile(profile);
-            setAuthState('AUTHENTICATED');
-            setAuthError(null);
-          } catch (err) {
-            console.warn('Using local fallback profile:', err);
-            // Fallback to local profile with user display name
-            const local = getStoredProfile();
-            const fallback: UserProfile = {
-              ...local,
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || local.name,
-              name: firebaseUser.displayName || local.name,
-              photoURL: firebaseUser.photoURL || '',
-            };
-            setUserProfile(fallback);
-            setAuthState('AUTHENTICATED');
-          }
-        } else {
-          setCurrentUser(null);
-          // Load local profile for guest
-          const local = getStoredProfile();
-          setUserProfile(local);
-          setAuthState('GUEST');
+    (async () => {
+      try {
+        const [{ onAuthStateChanged }, firebaseMod, profileMod] = await Promise.all([
+          import('firebase/auth'),
+          import('@/lib/firebase'),
+          import('@/lib/userProfileService'),
+        ]);
+
+        if (cancelled) return;
+
+        const connectionProbePromise = firebaseMod.testConnection().catch((err) => {
+          console.warn('Initial connection probe:', err);
+          return false;
+        });
+
+        handleOnline = () => {
+          firebaseMod.testConnection().catch(() => {});
+        };
+        if (typeof window !== 'undefined') {
+          window.addEventListener('online', handleOnline);
         }
-      },
-      (error) => {
-        console.error('onAuthStateChanged error:', error);
-        setAuthError('خطا در بررسی وضعیت احراز هویت');
-        setAuthState('AUTH_ERROR');
+
+        unsubscribe = onAuthStateChanged(
+          firebaseMod.auth,
+          async (firebaseUser) => {
+            if (cancelled) return;
+            if (firebaseUser) {
+              setCurrentUser(firebaseUser);
+              setAuthState('PROFILE_LOADING');
+              try {
+                const localProgress = getStoredProfile();
+                const isReachable = await connectionProbePromise;
+                if (!isReachable) {
+                  throw new Error('Firestore backend currently unreachable');
+                }
+                const profile = await profileMod.syncOrCreateUserProfile(
+                  firebaseUser,
+                  localProgress
+                );
+                if (!cancelled) {
+                  setUserProfile(profile);
+                  setAuthState('AUTHENTICATED');
+                  setAuthError(null);
+                }
+              } catch (err) {
+                console.warn('Using local fallback profile:', err);
+                const local = getStoredProfile();
+                const fallback: UserProfile = {
+                  ...local,
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email || '',
+                  displayName: firebaseUser.displayName || local.name,
+                  name: firebaseUser.displayName || local.name,
+                  photoURL: firebaseUser.photoURL || '',
+                };
+                if (!cancelled) {
+                  setUserProfile(fallback);
+                  setAuthState('AUTHENTICATED');
+                }
+              }
+            } else {
+              setCurrentUser(null);
+              const local = getStoredProfile();
+              setUserProfile(local);
+              setAuthState('GUEST');
+            }
+          },
+          (error) => {
+            console.error('onAuthStateChanged error:', error);
+            if (!cancelled) {
+              setAuthError('خطا در بررسی وضعیت احراز هویت');
+              setAuthState('AUTH_ERROR');
+            }
+          }
+        );
+      } catch (err) {
+        console.warn('Firebase deferred initialization skipped:', err);
       }
-    );
+    })();
 
     return () => {
-      unsubscribe();
-      if (typeof window !== 'undefined') {
+      cancelled = true;
+      if (unsubscribe) unsubscribe();
+      if (handleOnline && typeof window !== 'undefined') {
         window.removeEventListener('online', handleOnline);
       }
     };
@@ -116,14 +134,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthState('LOGIN_IN_PROGRESS');
     setAuthError(null);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const firebaseUser = result.user;
+      const [{ signInWithPopup, signInWithCredential, GoogleAuthProvider }, firebaseMod, profileMod, capMod] =
+        await Promise.all([
+          import('firebase/auth'),
+          import('@/lib/firebase'),
+          import('@/lib/userProfileService'),
+          import('@/lib/capacitor'),
+        ]);
+
+      let firebaseUser: User;
+      if (capMod.isCapacitorNative()) {
+        const { idToken } = await capMod.nativeGoogleSignIn();
+        const credential = GoogleAuthProvider.credential(idToken);
+        const result = await signInWithCredential(firebaseMod.auth, credential);
+        firebaseUser = result.user;
+      } else {
+        const result = await signInWithPopup(firebaseMod.auth, firebaseMod.googleProvider);
+        firebaseUser = result.user;
+      }
+
       setCurrentUser(firebaseUser);
       setAuthState('PROFILE_LOADING');
 
-      await ensureFirestoreNetworkEnabled();
+      await firebaseMod.ensureFirestoreNetworkEnabled();
       const localProgress = getStoredProfile();
-      const profile = await syncOrCreateUserProfile(firebaseUser, localProgress);
+      const profile = await profileMod.syncOrCreateUserProfile(firebaseUser, localProgress);
       setUserProfile(profile);
       setAuthState('AUTHENTICATED');
       return true;
@@ -142,6 +177,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (code === 'auth/network-request-failed') {
           message = 'خطا در ارتباط با سرور. لطفاً اتصال اینترنت خود را بررسی کنید.';
         }
+      } else if (error instanceof Error && error.message) {
+        if (error.message.toLowerCase().includes('cancel')) {
+          message = 'ورود با حساب گوگل توسط کاربر لغو شد.';
+        }
       }
 
       setAuthError(message);
@@ -152,7 +191,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async (): Promise<void> => {
     try {
-      await signOut(auth);
+      const [{ signOut }, firebaseMod, capMod] = await Promise.all([
+        import('firebase/auth'),
+        import('@/lib/firebase'),
+        import('@/lib/capacitor'),
+      ]);
+      await capMod.nativeGoogleSignOut();
+      await signOut(firebaseMod.auth);
       setCurrentUser(null);
       const local = getStoredProfile();
       setUserProfile(local);
@@ -166,7 +211,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfileData = async (updates: Partial<UserProfile>): Promise<boolean> => {
     if (!currentUser) {
-      // Guest mode: update locally
       const current = userProfile || getStoredProfile();
       const updated: UserProfile = {
         ...current,
@@ -179,8 +223,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      await ensureFirestoreNetworkEnabled();
-      const updated = await updateUserProfileInFirestore(currentUser.uid, updates);
+      const [firebaseMod, profileMod] = await Promise.all([
+        import('@/lib/firebase'),
+        import('@/lib/userProfileService'),
+      ]);
+      await firebaseMod.ensureFirestoreNetworkEnabled();
+      const updated = await profileMod.updateUserProfileInFirestore(currentUser.uid, updates);
       setUserProfile(updated);
       return true;
     } catch (error) {
@@ -193,8 +241,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshProfile = async (): Promise<void> => {
     if (!currentUser) return;
     try {
-      await ensureFirestoreNetworkEnabled();
-      const profile = await fetchUserProfileFromFirestore(currentUser.uid);
+      const [firebaseMod, profileMod] = await Promise.all([
+        import('@/lib/firebase'),
+        import('@/lib/userProfileService'),
+      ]);
+      await firebaseMod.ensureFirestoreNetworkEnabled();
+      const profile = await profileMod.fetchUserProfileFromFirestore(currentUser.uid);
       if (profile) {
         setUserProfile(profile);
         saveProfile(profile);

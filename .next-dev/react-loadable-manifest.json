@@ -1,0 +1,140 @@
+{
+  "../node_modules/@capacitor/app/dist/esm/index.js -> ./web": {
+    "id": "../node_modules/@capacitor/app/dist/esm/index.js -> ./web",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_capacitor_app_dist_esm_web_js.js"
+    ]
+  },
+  "../node_modules/@capacitor/network/dist/esm/index.js -> ./web": {
+    "id": "../node_modules/@capacitor/network/dist/esm/index.js -> ./web",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_capacitor_network_dist_esm_web_js.js"
+    ]
+  },
+  "../node_modules/@capacitor/splash-screen/dist/esm/index.js -> ./web": {
+    "id": "../node_modules/@capacitor/splash-screen/dist/esm/index.js -> ./web",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_capacitor_splash-screen_dist_esm_web_js.js"
+    ]
+  },
+  "../node_modules/@southdevs/capacitor-google-auth/dist/esm/index.js -> ./web": {
+    "id": "../node_modules/@southdevs/capacitor-google-auth/dist/esm/index.js -> ./web",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_southdevs_capacitor-google-auth_dist_esm_web_js.js"
+    ]
+  },
+  "app/page.tsx -> @/components/AuthModal": {
+    "id": "app/page.tsx -> @/components/AuthModal",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_AuthModal_tsx.js"
+    ]
+  },
+  "app/page.tsx -> @/components/screens/AiMasterView": {
+    "id": "app/page.tsx -> @/components/screens/AiMasterView",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_screens_AiMasterView_tsx.js"
+    ]
+  },
+  "app/page.tsx -> @/components/screens/CommunityView": {
+    "id": "app/page.tsx -> @/components/screens/CommunityView",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_screens_CommunityView_tsx.js"
+    ]
+  },
+  "app/page.tsx -> @/components/screens/GameSetupView": {
+    "id": "app/page.tsx -> @/components/screens/GameSetupView",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_screens_GameSetupView_tsx.js"
+    ]
+  },
+  "app/page.tsx -> @/components/screens/GameplayView": {
+    "id": "app/page.tsx -> @/components/screens/GameplayView",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_screens_GameplayView_tsx.js"
+    ]
+  },
+  "app/page.tsx -> @/components/screens/ProfileView": {
+    "id": "app/page.tsx -> @/components/screens/ProfileView",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_screens_ProfileView_tsx.js"
+    ]
+  },
+  "app/page.tsx -> @/components/screens/ResultsView": {
+    "id": "app/page.tsx -> @/components/screens/ResultsView",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_screens_ResultsView_tsx.js"
+    ]
+  },
+  "app/page.tsx -> @/lib/userProfileService": {
+    "id": "app/page.tsx -> @/lib/userProfileService",
+    "files": [
+      "static/chunks/_app-pages-browser_src_lib_userProfileService_ts-_9dbf1.js"
+    ]
+  },
+  "components/Providers.tsx -> @/components/PWAInstallButton": {
+    "id": "components/Providers.tsx -> @/components/PWAInstallButton",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_PWAInstallButton_tsx.js"
+    ]
+  },
+  "components/Providers.tsx -> @/lib/capacitor": {
+    "id": "components/Providers.tsx -> @/lib/capacitor",
+    "files": [
+      "static/chunks/_app-pages-browser_src_lib_capacitor_ts.js"
+    ]
+  },
+  "context/AuthContext.tsx -> @/lib/capacitor": {
+    "id": "context/AuthContext.tsx -> @/lib/capacitor",
+    "files": [
+      "static/chunks/_app-pages-browser_src_lib_capacitor_ts.js"
+    ]
+  },
+  "context/AuthContext.tsx -> @/lib/firebase": {
+    "id": "context/AuthContext.tsx -> @/lib/firebase",
+    "files": [
+      "static/chunks/_app-pages-browser_src_lib_firebase_ts.js"
+    ]
+  },
+  "context/AuthContext.tsx -> @/lib/userProfileService": {
+    "id": "context/AuthContext.tsx -> @/lib/userProfileService",
+    "files": [
+      "static/chunks/_app-pages-browser_src_lib_userProfileService_ts-_9dbf0.js"
+    ]
+  },
+  "context/AuthContext.tsx -> firebase/auth": {
+    "id": "context/AuthContext.tsx -> firebase/auth",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_firebase_auth_dist_esm_index_esm_js.js"
+    ]
+  },
+  "lib/capacitor.ts -> @capacitor/app": {
+    "id": "lib/capacitor.ts -> @capacitor/app",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_capacitor_app_dist_esm_index_js.js"
+    ]
+  },
+  "lib/capacitor.ts -> @capacitor/network": {
+    "id": "lib/capacitor.ts -> @capacitor/network",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_capacitor_network_dist_esm_index_js.js"
+    ]
+  },
+  "lib/capacitor.ts -> @capacitor/splash-screen": {
+    "id": "lib/capacitor.ts -> @capacitor/splash-screen",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_capacitor_splash-screen_dist_esm_index_js.js"
+    ]
+  },
+  "lib/capacitor.ts -> @capacitor/status-bar": {
+    "id": "lib/capacitor.ts -> @capacitor/status-bar",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_capacitor_status-bar_dist_esm_index_js.js"
+    ]
+  },
+  "lib/capacitor.ts -> @southdevs/capacitor-google-auth": {
+    "id": "lib/capacitor.ts -> @southdevs/capacitor-google-auth",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_southdevs_capacitor-google-auth_dist_esm_index_js.js"
+    ]
+  }
+}

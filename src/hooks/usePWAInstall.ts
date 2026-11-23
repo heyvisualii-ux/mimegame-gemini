@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { isCapacitorNative, subscribeNativeNetworkStatus } from '@/lib/capacitor';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -16,7 +17,9 @@ export function usePWAInstall() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    const isNative = isCapacitorNative();
     const isStandalone =
+      isNative ||
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
     setIsInstalled(isStandalone);
@@ -24,8 +27,12 @@ export function usePWAInstall() {
     const userAgent = window.navigator.userAgent.toLowerCase();
     setIsIOS(/iphone|ipad|ipod/.test(userAgent));
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    // Do not register web Service Worker inside Capacitor native container
+    if (!isNative && 'serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((reg) => reg.update().catch(() => {}))
+        .catch(() => {});
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -81,9 +88,24 @@ export function useOnlineStatus() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    let cleanupNative: (() => void) | undefined;
+    let active = true;
+
+    subscribeNativeNetworkStatus((connected) => {
+      if (active) setIsOnline(connected);
+    }).then((remove) => {
+      if (active) {
+        cleanupNative = remove;
+      } else {
+        remove();
+      }
+    });
+
     return () => {
+      active = false;
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      if (cleanupNative) cleanupNative();
     };
   }, []);
 

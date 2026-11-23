@@ -2,14 +2,35 @@
   "name": "mime-master-ai",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
     "build": "NODE_ENV=production next build",
     "start": "next start -p 3000 -H 0.0.0.0",
-    "lint": "next lint"
+    "start:passenger": "node app.js",
+    "cpanel:package": "npm run build && node scripts/prepare-cpanel.mjs",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "cap:build": "npm run build && npx cap sync android",
+    "android:debug": "cd android && ./gradlew assembleDebug",
+    "android:debug:win": "cd android && gradlew.bat assembleDebug",
+    "android:release": "cd android && ./gradlew assembleRelease",
+    "android:signing-report:win": "cd android && gradlew.bat signingReport"
   },
   "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/network": "^7.0.0",
+    "@capacitor/splash-screen": "^7.0.0",
+    "@capacitor/status-bar": "^7.0.0",
     "@google/genai": "^3.0.0",
+    "@southdevs/capacitor-google-auth": "^7.0.0",
     "canvas-confetti": "^1.9.4",
     "firebase": "^13.2.0",
     "lucide-react": "^1.16.0",

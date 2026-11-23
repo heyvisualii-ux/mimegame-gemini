@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Word, ScoreLogItem } from '@/types/game';
 import { GlassCard } from '../GlassCard';
 import { AnimatedTimerRing } from '../AnimatedTimerRing';
@@ -96,6 +96,31 @@ export const GameplayView: React.FC<GameplayViewProps> = ({
     setShowPauseModal(false);
     onEndGameEarly();
   };
+
+  const pauseStateRef = useRef({
+    showPauseModal,
+    onPauseGame,
+    onResumeGame,
+  });
+  pauseStateRef.current = { showPauseModal, onPauseGame, onResumeGame };
+
+  useEffect(() => {
+    const onAndroidBack = () => {
+      soundManager.playPop();
+      if (pauseStateRef.current.showPauseModal) {
+        setShowPauseModal(false);
+        pauseStateRef.current.onResumeGame();
+      } else {
+        pauseStateRef.current.onPauseGame();
+        setShowPauseModal(true);
+      }
+    };
+
+    window.addEventListener('pantomix:android-back', onAndroidBack);
+    return () => {
+      window.removeEventListener('pantomix:android-back', onAndroidBack);
+    };
+  }, []);
 
   const mascotExpression: MimeoExpression =
     remainingSeconds <= 10
