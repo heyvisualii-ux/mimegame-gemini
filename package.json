@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
-    "build": "NODE_ENV=production next build",
+    "build": "next build",
     "start": "next start -p 3000 -H 0.0.0.0",
     "start:passenger": "node app.js",
     "cpanel:package": "npm run build && node scripts/prepare-cpanel.mjs",
@@ -32,7 +32,7 @@
     "@google/genai": "^3.0.0",
     "@southdevs/capacitor-google-auth": "^7.0.0",
     "canvas-confetti": "^1.9.4",
-    "firebase": "^13.2.0",
+    "firebase": "^12.19.0",
     "lucide-react": "^1.16.0",
     "next": "^15.2.0",
     "react": "^19.0.0",
