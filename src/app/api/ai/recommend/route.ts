@@ -1,18 +1,20 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
+import { Type } from '@google/genai';
 import { AiGameRecommendation, GameModeId } from '@/types/game';
+import { generateWithGemini, stripJsonFences } from '@/lib/gemini';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { playerCount = 4, ageRange = '۱۸ تا ۳۵', groupType = 'FRIENDS', minutes = 30, mood = 'FUNNY' } = body;
+    const body = await req.json().catch(() => ({}));
+    const {
+      playerCount = 4,
+      ageRange = '۱۸ تا ۳۵',
+      groupType = 'FRIENDS',
+      minutes = 30,
+      mood = 'FUNNY',
+    } = body;
 
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (apiKey) {
-      try {
-        const ai = new GoogleGenAI({ apiKey });
-        const prompt = `
+    const prompt = `
 You are "Panto" (پانتو), the groovy, comedic 70s-style mascot and AI Game Master for "PantoMix" (پانتومیکس - Persian Pantomime Party Game).
 Analyze this Iranian party setup:
 - Player Count: ${playerCount}
@@ -21,43 +23,65 @@ Analyze this Iranian party setup:
 - Available Time: ${minutes} minutes
 - Group Mood: ${mood} (FUNNY, COMPETITIVE, ENERGETIC, or CHILL)
 
-Return ONLY a valid JSON object matching this schema without markdown fences:
-{
-  "recommendedModeTitle": "عنوان فارسی مد پیشنهادی",
-  "recommendedModeId": "TEAM_BATTLE",
-  "mimeoGreeting": "پیام پرانرژی، طنز و خودمانی پانتو به زبان فارسی به بازی‌کنندگان",
-  "suggestedCategoryIds": ["cinema", "funny", "proverbs"],
-  "targetRounds": 3,
-  "roundTimerSeconds": 90,
-  "funTip": "یک نکته طنز، داوری یا توصیه پانتومیم به فارسی"
-}
-Note: "recommendedModeId" must be one of: "CLASSIC", "SPEED_CHALLENGE", "TEAM_BATTLE", "AI_CHALLENGE", "FAMILY", "PARTY_EXTREME".
-        `;
+Return ONLY a valid JSON object matching the schema.
+"recommendedModeId" must be one of: "CLASSIC", "SPEED_CHALLENGE", "TEAM_BATTLE", "AI_CHALLENGE", "FAMILY", "PARTY_EXTREME".
+"suggestedCategoryIds" should use relevant IDs from: ["cinema", "funny", "proverbs", "animals", "objects", "jobs", "sports"].
+`;
 
-        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
-        const generatePromise = ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
+    const result = await generateWithGemini({
+      prompt,
+      timeoutMs: 11000,
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          recommendedModeTitle: { type: Type.STRING },
+          recommendedModeId: { type: Type.STRING },
+          mimeoGreeting: { type: Type.STRING },
+          suggestedCategoryIds: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
           },
-        });
+          targetRounds: { type: Type.NUMBER },
+          roundTimerSeconds: { type: Type.NUMBER },
+          funTip: { type: Type.STRING },
+        },
+        required: [
+          'recommendedModeTitle',
+          'recommendedModeId',
+          'mimeoGreeting',
+          'suggestedCategoryIds',
+          'targetRounds',
+          'roundTimerSeconds',
+          'funTip',
+        ],
+      },
+    });
 
-        const response = await Promise.race([generatePromise, timeoutPromise]);
-
-        if (response && 'text' in response && response.text) {
-          const text = response.text.trim();
-          const parsed: AiGameRecommendation = JSON.parse(text);
-          return NextResponse.json({ success: true, data: parsed });
+    if (result.ok) {
+      try {
+        const parsed: AiGameRecommendation = JSON.parse(stripJsonFences(result.text));
+        if (parsed && parsed.recommendedModeTitle && parsed.mimeoGreeting) {
+          return NextResponse.json({
+            success: true,
+            source: 'gemini',
+            model: result.model,
+            data: parsed,
+          });
         }
-      } catch (err) {
-        console.error('Gemini API call failed, using smart fallback', err);
+      } catch (parseErr) {
+        console.error('[PantoMix][Gemini] Invalid JSON from /api/ai/recommend:', parseErr);
       }
     }
 
-    // Smart Fallback
+    const fallbackReason = result.ok ? 'invalid_response' : result.reason;
     const fallback: AiGameRecommendation = getFallbackRecommendation(groupType, playerCount);
-    return NextResponse.json({ success: true, data: fallback });
+    return NextResponse.json({
+      success: true,
+      source: 'fallback',
+      fallbackReason,
+      data: fallback,
+    });
   } catch (error) {
     console.error('API Error', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });

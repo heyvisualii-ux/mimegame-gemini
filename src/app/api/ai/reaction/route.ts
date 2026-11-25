@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
+import { generateWithGemini } from '@/lib/gemini';
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -23,36 +23,35 @@ export async function POST(req: Request) {
   const list = isSuccess ? fallbacksSuccess : fallbacksSkip;
   const defaultReaction = list[Math.floor(Math.random() * list.length)];
 
-  const apiKey = process.env.GEMINI_API_KEY;
-
-  if (apiKey) {
-    try {
-      const ai = new GoogleGenAI({ apiKey });
-      const prompt = `
+  const prompt = `
 You are "Panto", the funny groovy mascot of PantoMix (پانتومیکس - Persian Pantomime party game).
 Give a 1-sentence hilarious, short Persian encouraging or celebratory reaction for a player who just ${
-        isSuccess ? 'GUESSED CORRECTLY' : 'SKIPPED/FAILED'
-      } (Total Score: ${score}, Combo: ${combo}).
+    isSuccess ? 'GUESSED CORRECTLY' : 'SKIPPED/FAILED'
+  } (Total Score: ${score}, Combo: ${combo}).
 Keep it maximum 10 words, energetic, funny, and warm. Output raw Persian text only, no quotes, no markdown.
 `;
 
-      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
-      const generatePromise = ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-      });
+  const result = await generateWithGemini({
+    prompt,
+    timeoutMs: 6000,
+  });
 
-      const response = await Promise.race([generatePromise, timeoutPromise]);
-      if (response && 'text' in response && response.text) {
-        const text = response.text.trim().replace(/["`]/g, '');
-        if (text) {
-          return NextResponse.json({ success: true, reaction: text });
-        }
-      }
-    } catch (err) {
-      console.error('Reaction generation error', err);
+  if (result.ok) {
+    const text = result.text.trim().replace(/["`]/g, '');
+    if (text) {
+      return NextResponse.json({
+        success: true,
+        source: 'gemini',
+        model: result.model,
+        reaction: text,
+      });
     }
   }
 
-  return NextResponse.json({ success: true, reaction: defaultReaction });
+  return NextResponse.json({
+    success: true,
+    source: 'fallback',
+    fallbackReason: result.ok ? 'invalid_response' : result.reason,
+    reaction: defaultReaction,
+  });
 }

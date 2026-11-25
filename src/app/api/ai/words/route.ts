@@ -1,63 +1,82 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
+import { Type } from '@google/genai';
 import { Word, WordDifficulty } from '@/types/game';
+import { generateWithGemini, stripJsonFences } from '@/lib/gemini';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const { topic = 'فیلم و سریال', count = 5, difficulty = 'MEDIUM' } = body;
+    const safeCount = Math.min(20, Math.max(1, Number(count) || 5));
 
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (apiKey) {
-      try {
-        const ai = new GoogleGenAI({ apiKey });
-        const prompt = `
+    const prompt = `
 You are "Panto" (پانتو), the groovy, comedic 70s AI Game Master for PantoMix (پانتومیکس - Persian Pantomime & Charades party game).
-Generate ${count} creative, hilarious, and playable Persian Pantomime words or situation phrases for the topic: "${topic}".
+Generate ${safeCount} creative, hilarious, and playable Persian Pantomime words or situation phrases for the topic: "${topic}".
 Difficulty level: ${difficulty}.
 
-Return ONLY a JSON array with this exact structure without markdown code fences:
-[
-  {
-    "text": "کلمه یا عبارت پانتومیم به فارسی",
-    "category": "ai_generated",
-    "difficulty": "${difficulty}",
-    "points": ${difficulty === 'EASY' ? 10 : difficulty === 'MEDIUM' ? 20 : difficulty === 'HARD' ? 35 : 50},
-    "hint": "یک راهنمایی کوتاه، هوشمندانه یا طنز برای بازیگر"
-  }
-]
+Return ONLY a JSON array of ${safeCount} objects matching the requested schema.
+Points guide: EASY=10, MEDIUM=20, HARD=35, EXTREME=50.
 `;
 
-        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
-        const generatePromise = ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
+    const result = await generateWithGemini({
+      prompt,
+      timeoutMs: 11000,
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            text: {
+              type: Type.STRING,
+              description: 'کلمه یا عبارت پانتومیم به فارسی',
+            },
+            difficulty: {
+              type: Type.STRING,
+              description: 'EASY, MEDIUM, HARD, or EXTREME',
+            },
+            points: {
+              type: Type.NUMBER,
+              description: 'امتیاز کلمه',
+            },
+            hint: {
+              type: Type.STRING,
+              description: 'یک راهنمایی کوتاه، هوشمندانه یا طنز برای بازیگر',
+            },
           },
-        });
+          required: ['text', 'hint'],
+        },
+      },
+    });
 
-        const response = await Promise.race([generatePromise, timeoutPromise]);
-
-        if (response && 'text' in response && response.text) {
-          const text = response.text.trim();
-          const rawWords = JSON.parse(text);
+    if (result.ok) {
+      try {
+        const rawWords = JSON.parse(stripJsonFences(result.text));
+        if (Array.isArray(rawWords) && rawWords.length > 0) {
+          const defaultPoints =
+            difficulty === 'EASY' ? 10 : difficulty === 'MEDIUM' ? 20 : difficulty === 'HARD' ? 35 : 50;
           const words: Word[] = rawWords.map((item: Partial<Word>, idx: number) => ({
             id: `ai_${Date.now()}_${idx}`,
             text: item.text || 'کلمه پانتومیم هوش مصنوعی',
             category: 'ai_generated',
-            difficulty: (item.difficulty as WordDifficulty) || 'MEDIUM',
-            points: Number(item.points) || 20,
+            difficulty: (item.difficulty as WordDifficulty) || (difficulty as WordDifficulty),
+            points: Number(item.points) || defaultPoints,
             hint: item.hint || 'راهنمایی اختصاصی پانتو',
             isCustomAi: true,
           }));
-          return NextResponse.json({ success: true, data: words });
+          return NextResponse.json({
+            success: true,
+            source: 'gemini',
+            model: result.model,
+            data: words,
+          });
         }
-      } catch (err) {
-        console.error('Gemini word generation failed, using fallback', err);
+      } catch (parseErr) {
+        console.error('[PantoMix][Gemini] Invalid JSON from /api/ai/words:', parseErr);
       }
     }
+
+    const fallbackReason = result.ok ? 'invalid_response' : result.reason;
 
     // Dynamic Fallback Words
     const fallbackWords: Word[] = [
@@ -106,9 +125,14 @@ Return ONLY a JSON array with this exact structure without markdown code fences:
         hint: 'گرفتن میکروفن به سمت تماشاچی‌ها تا آنها بخوانند',
         isCustomAi: true,
       },
-    ];
+    ].slice(0, safeCount);
 
-    return NextResponse.json({ success: true, data: fallbackWords });
+    return NextResponse.json({
+      success: true,
+      source: 'fallback',
+      fallbackReason,
+      data: fallbackWords,
+    });
   } catch (error) {
     console.error('Word API Error', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });

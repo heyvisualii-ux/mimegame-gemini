@@ -1,7 +1,7 @@
 import { AiGameRecommendation, Word, WordDifficulty } from '@/types/game';
 
 const DEFAULT_TIMEOUT_MS = 12000;
-const REACTION_TIMEOUT_MS = 4000;
+const REACTION_TIMEOUT_MS = 7000;
 
 function getApiBaseUrl(): string {
   // Inside Capacitor WebView pointing to the production Next.js server,
