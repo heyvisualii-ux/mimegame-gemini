@@ -10,7 +10,7 @@ export default function createNextConfig(phase: string): NextConfig {
       unoptimized: true,
     },
     experimental: {
-      optimizePackageImports: ['lucide-react', 'firebase', 'firebase/auth', 'firebase/firestore'],
+      optimizePackageImports: ['lucide-react'],
     },
     webpack: (config, { isServer }) => {
       if (!isServer && config.output) {
