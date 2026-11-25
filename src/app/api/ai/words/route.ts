@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 import { Type } from '@google/genai';
 import { Word, WordDifficulty } from '@/types/game';
-import { generateWithGemini, stripJsonFences } from '@/lib/gemini';
+import {
+  DEFAULT_GEMINI_TIMEOUT_MS,
+  generateWithGemini,
+  stripJsonFences,
+} from '@/lib/gemini';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
@@ -19,8 +26,9 @@ Points guide: EASY=10, MEDIUM=20, HARD=35, EXTREME=50.
 `;
 
     const result = await generateWithGemini({
+      route: '/api/ai/words',
       prompt,
-      timeoutMs: 11000,
+      timeoutMs: DEFAULT_GEMINI_TIMEOUT_MS,
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.ARRAY,
@@ -72,7 +80,10 @@ Points guide: EASY=10, MEDIUM=20, HARD=35, EXTREME=50.
           });
         }
       } catch (parseErr) {
-        console.error('[PantoMix][Gemini] Invalid JSON from /api/ai/words:', parseErr);
+        const parseMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+        console.error(
+          `[PantoMix][Gemini] route=/api/ai/words model=${result.model} durationMs=${result.durationMs} status=200 reason=invalid_response message="Invalid JSON: ${parseMsg}"`
+        );
       }
     }
 

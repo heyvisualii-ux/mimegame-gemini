@@ -1,4 +1,7 @@
-import { GoogleGenAI, ThinkingLevel, type Schema } from '@google/genai';
+import { GoogleGenAI, type Schema } from '@google/genai';
+
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.1-flash-lite';
+export const DEFAULT_GEMINI_TIMEOUT_MS = 30000;
 
 export type GeminiFallbackReason =
   | 'missing_key'
@@ -16,25 +19,19 @@ export type GeminiGenerateResult =
       ok: true;
       text: string;
       model: string;
+      durationMs: number;
     }
   | {
       ok: false;
       reason: GeminiFallbackReason;
-      model?: string;
+      model: string;
+      durationMs: number;
       statusCode?: number;
     };
 
-const DEFAULT_MODEL_CANDIDATES = [
-  'gemini-4-hydrogen',
-  'gemini-3.1-flash-lite',
-] as const;
-
-function getCandidateModels(): string[] {
+function getTargetModel(): string {
   const custom = process.env.GEMINI_MODEL?.trim();
-  const list = custom
-    ? [custom, ...DEFAULT_MODEL_CANDIDATES]
-    : [...DEFAULT_MODEL_CANDIDATES];
-  return Array.from(new Set(list));
+  return custom || DEFAULT_GEMINI_MODEL;
 }
 
 function getErrorStatus(err: unknown): number | undefined {
@@ -45,13 +42,25 @@ function getErrorStatus(err: unknown): number | undefined {
   return undefined;
 }
 
-function redactSecrets(text: string): string {
-  return text.replace(/AIza[0-9A-Za-z_-]{20,}/g, '[REDACTED_KEY]').slice(0, 260);
+function redactSecrets(text: string, apiKey?: string): string {
+  let sanitized = text;
+  if (apiKey && apiKey.length >= 6) {
+    sanitized = sanitized.split(apiKey).join('[REDACTED_KEY]');
+  }
+  return sanitized
+    .replace(/AIza[0-9A-Za-z_-]{10,}/g, '[REDACTED_KEY]')
+    .replace(/(x-goog-api-key\s*[:=]\s*)[^\s,;]+/gi, '$1[REDACTED_KEY]')
+    .replace(/([?&]key=)[^&\s]+/gi, '$1[REDACTED_KEY]')
+    .replace(/(Bearer\s+)[A-Za-z0-9._-]+/gi, '$1[REDACTED_TOKEN]')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 300);
 }
 
 function classifyGeminiError(err: unknown): GeminiFallbackReason {
   const status = getErrorStatus(err);
   const msg = err instanceof Error ? err.message : String(err);
+  const name = err instanceof Error ? err.name.toLowerCase() : '';
   const lower = msg.toLowerCase();
 
   if (
@@ -90,13 +99,16 @@ function classifyGeminiError(err: unknown): GeminiFallbackReason {
   ) {
     return 'model_not_found';
   }
-  if (
-    status === 400 ||
-    lower.includes('invalid_argument')
-  ) {
+  if (status === 400 || lower.includes('invalid_argument')) {
     return 'invalid_argument';
   }
-  if (lower.includes('timeout') || lower.includes('aborted')) {
+  if (
+    name === 'aborterror' ||
+    lower.includes('timeout') ||
+    lower.includes('timed out') ||
+    lower.includes('etimedout') ||
+    lower.includes('aborted')
+  ) {
     return 'timeout';
   }
   return 'api_error';
@@ -111,96 +123,100 @@ export function stripJsonFences(raw: string): string {
 }
 
 export async function generateWithGemini(params: {
+  route?: string;
   prompt: string;
-  timeoutMs: number;
+  timeoutMs?: number;
   responseMimeType?: string;
   responseSchema?: Schema;
 }): Promise<GeminiGenerateResult> {
+  const route = params.route || 'unknown';
+  const model = getTargetModel();
+  const timeoutMs = Math.max(1000, params.timeoutMs ?? DEFAULT_GEMINI_TIMEOUT_MS);
+  const startedAt = Date.now();
+
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
-    return { ok: false, reason: 'missing_key' };
+    const durationMs = Date.now() - startedAt;
+    console.warn(
+      `[PantoMix][Gemini] route=${route} model=${model} durationMs=${durationMs} status=none reason=missing_key`
+    );
+    return { ok: false, reason: 'missing_key', model, durationMs };
   }
 
   const ai = new GoogleGenAI({
     apiKey,
     httpOptions: {
+      timeout: timeoutMs,
       headers: {
         'User-Agent': 'aistudio-build',
       },
     },
   });
 
-  const models = getCandidateModels();
-  const startedAt = Date.now();
-  let lastReason: GeminiFallbackReason = 'api_error';
-  let lastModel: string | undefined;
-  let lastStatus: number | undefined;
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
-  for (const model of models) {
-    const elapsed = Date.now() - startedAt;
-    const remainingMs = params.timeoutMs - elapsed;
-    if (remainingMs <= 500) {
-      return {
-        ok: false,
-        reason: 'timeout',
-        model: lastModel,
-        statusCode: lastStatus,
-      };
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        const timeoutErr = new Error(`Gemini request timeout after ${timeoutMs}ms`);
+        controller.abort(timeoutErr);
+        reject(timeoutErr);
+      }, timeoutMs);
+    });
+
+    const generatePromise = ai.models.generateContent({
+      model,
+      contents: params.prompt,
+      config: {
+        abortSignal: controller.signal,
+        ...(params.responseMimeType ? { responseMimeType: params.responseMimeType } : {}),
+        ...(params.responseSchema ? { responseSchema: params.responseSchema } : {}),
+      },
+    });
+
+    const response = await Promise.race([generatePromise, timeoutPromise]);
+    const durationMs = Date.now() - startedAt;
+    const text = response?.text?.trim();
+
+    if (text) {
+      console.info(
+        `[PantoMix][Gemini] route=${route} model=${model} durationMs=${durationMs} status=200 ok=true`
+      );
+      return { ok: true, text, model, durationMs };
     }
 
-    lastModel = model;
-    const supportsThinkingLevel =
-      model.startsWith('gemini-4-') || model.startsWith('gemini-3.');
+    console.warn(
+      `[PantoMix][Gemini] route=${route} model=${model} durationMs=${durationMs} status=200 reason=invalid_response message="Empty text returned by Gemini"`
+    );
+    return {
+      ok: false,
+      reason: 'invalid_response',
+      model,
+      durationMs,
+      statusCode: 200,
+    };
+  } catch (err) {
+    const durationMs = Date.now() - startedAt;
+    const reason = classifyGeminiError(err);
+    const statusCode = getErrorStatus(err);
+    const sanitizedError = redactSecrets(
+      err instanceof Error ? err.message : String(err),
+      apiKey
+    );
 
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error('Gemini request timeout')), remainingMs);
-      });
+    console.error(
+      `[PantoMix][Gemini] route=${route} model=${model} durationMs=${durationMs} status=${statusCode ?? 'none'} reason=${reason} message="${sanitizedError}"`
+    );
 
-      const generatePromise = ai.models.generateContent({
-        model,
-        contents: params.prompt,
-        config: {
-          ...(params.responseMimeType ? { responseMimeType: params.responseMimeType } : {}),
-          ...(params.responseSchema ? { responseSchema: params.responseSchema } : {}),
-          ...(supportsThinkingLevel
-            ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }
-            : {}),
-        },
-      });
-
-      const response = await Promise.race([generatePromise, timeoutPromise]);
-      const text = response?.text?.trim();
-      if (text) {
-        return { ok: true, text, model };
-      }
-
-      lastReason = 'invalid_response';
-    } catch (err) {
-      lastReason = classifyGeminiError(err);
-      lastStatus = getErrorStatus(err);
-      const errMsg = redactSecrets(err instanceof Error ? err.message : String(err));
-      console.error(`[PantoMix][Gemini] model=${model} reason=${lastReason} status=${lastStatus ?? 'none'}: ${errMsg}`);
-
-      // Stop immediately if the API key itself is rejected; otherwise try backup model candidates
-      if (lastReason === 'invalid_key') {
-        return {
-          ok: false,
-          reason: lastReason,
-          model,
-          statusCode: lastStatus,
-        };
-      }
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
+    return {
+      ok: false,
+      reason,
+      model,
+      durationMs,
+      statusCode,
+    };
+  } finally {
+    if (timer) clearTimeout(timer);
   }
-
-  return {
-    ok: false,
-    reason: lastReason,
-    model: lastModel,
-    statusCode: lastStatus,
-  };
 }

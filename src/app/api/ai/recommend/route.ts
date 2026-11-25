@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 import { Type } from '@google/genai';
 import { AiGameRecommendation, GameModeId } from '@/types/game';
-import { generateWithGemini, stripJsonFences } from '@/lib/gemini';
+import {
+  DEFAULT_GEMINI_TIMEOUT_MS,
+  generateWithGemini,
+  stripJsonFences,
+} from '@/lib/gemini';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
@@ -29,8 +36,9 @@ Return ONLY a valid JSON object matching the schema.
 `;
 
     const result = await generateWithGemini({
+      route: '/api/ai/recommend',
       prompt,
-      timeoutMs: 11000,
+      timeoutMs: DEFAULT_GEMINI_TIMEOUT_MS,
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.OBJECT,
@@ -70,7 +78,10 @@ Return ONLY a valid JSON object matching the schema.
           });
         }
       } catch (parseErr) {
-        console.error('[PantoMix][Gemini] Invalid JSON from /api/ai/recommend:', parseErr);
+        const parseMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+        console.error(
+          `[PantoMix][Gemini] route=/api/ai/recommend model=${result.model} durationMs=${result.durationMs} status=200 reason=invalid_response message="Invalid JSON: ${parseMsg}"`
+        );
       }
     }
 

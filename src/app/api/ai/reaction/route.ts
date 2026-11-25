@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { generateWithGemini } from '@/lib/gemini';
+import { DEFAULT_GEMINI_TIMEOUT_MS, generateWithGemini } from '@/lib/gemini';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -32,8 +35,9 @@ Keep it maximum 10 words, energetic, funny, and warm. Output raw Persian text on
 `;
 
   const result = await generateWithGemini({
+    route: '/api/ai/reaction',
     prompt,
-    timeoutMs: 6000,
+    timeoutMs: DEFAULT_GEMINI_TIMEOUT_MS,
   });
 
   if (result.ok) {
