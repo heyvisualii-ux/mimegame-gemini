@@ -12,7 +12,13 @@ import {
   Word,
   WordDifficulty,
 } from '@/types/game';
-import { CATEGORIES, GAME_MODES, SEED_WORDS } from '@/data/seedData';
+import {
+  ACHIEVEMENTS,
+  CATEGORIES,
+  GAME_MODES,
+  INITIAL_COMMUNITY_WORDS,
+  SEED_WORDS,
+} from '@/data/seedData';
 import {
   addCustomWords,
   addXpAndCoins,
@@ -73,9 +79,9 @@ export default function MimeMasterApp() {
   // Persistent user and game state
   const [localProfile, setLocalProfile] = useState<UserProfile | null>(null);
   const profile = auth.userProfile || localProfile;
-  const [achievements, setAchievements] = useState(getStoredAchievements());
+  const [achievements, setAchievements] = useState(ACHIEVEMENTS);
   const [sessions, setSessions] = useState<GameSession[]>([]);
-  const [communityWords, setCommunityWords] = useState(getStoredCommunityWords());
+  const [communityWords, setCommunityWords] = useState(INITIAL_COMMUNITY_WORDS);
   const [allWords, setAllWords] = useState<Word[]>([]);
 
   // Setup state
@@ -595,10 +601,12 @@ export default function MimeMasterApp() {
       )}
 
       {/* Google Authentication Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
+      {isAuthModalOpen && (
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

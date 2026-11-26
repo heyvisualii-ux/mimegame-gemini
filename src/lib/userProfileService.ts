@@ -140,6 +140,33 @@ export async function updateUserProfileInFirestore(
   if (updates.avatarId !== undefined) {
     sanitized.avatarId = updates.avatarId;
   }
+  if (typeof updates.level === 'number' && Number.isFinite(updates.level)) {
+    sanitized.level = Math.max(1, Math.floor(updates.level));
+  }
+  if (typeof updates.xp === 'number' && Number.isFinite(updates.xp)) {
+    sanitized.xp = Math.max(0, Math.floor(updates.xp));
+  }
+  if (typeof updates.coins === 'number' && Number.isFinite(updates.coins)) {
+    sanitized.coins = Math.max(0, Math.floor(updates.coins));
+  }
+  if (typeof updates.streak === 'number' && Number.isFinite(updates.streak)) {
+    sanitized.streak = Math.max(0, Math.floor(updates.streak));
+  }
+  if (typeof updates.totalGamesPlayed === 'number' && Number.isFinite(updates.totalGamesPlayed)) {
+    sanitized.totalGamesPlayed = Math.max(0, Math.floor(updates.totalGamesPlayed));
+  }
+  if (typeof updates.totalCorrectGuesses === 'number' && Number.isFinite(updates.totalCorrectGuesses)) {
+    sanitized.totalCorrectGuesses = Math.max(0, Math.floor(updates.totalCorrectGuesses));
+  }
+  if (typeof updates.totalScore === 'number' && Number.isFinite(updates.totalScore)) {
+    sanitized.totalScore = Math.max(0, Math.floor(updates.totalScore));
+  }
+  if (typeof updates.wins === 'number' && Number.isFinite(updates.wins)) {
+    sanitized.wins = Math.max(0, Math.floor(updates.wins));
+  }
+  if (typeof updates.losses === 'number' && Number.isFinite(updates.losses)) {
+    sanitized.losses = Math.max(0, Math.floor(updates.losses));
+  }
 
   try {
     const docRef = doc(db, USERS_COLLECTION, uid);

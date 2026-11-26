@@ -1,6 +1,0 @@
-{
-  "/api/ai/words/route": "app/api/ai/words/route.js",
-  "/api/ai/recommend/route": "app/api/ai/recommend/route.js",
-  "/api/ai/reaction/route": "app/api/ai/reaction/route.js",
-  "/page": "app/page.js"
-}

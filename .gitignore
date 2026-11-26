@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# Next.js & TypeScript build outputs
+.next/
+.next-dev/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment variables & secrets (keep .env.example committed)
+.env
+.env.*
+!.env.example
+
+# Android keystores, signing credentials, local SDK & build outputs
+*.keystore
+*.jks
+*.keystore.base64
+debug.keystore.base64
+keystore.properties
+android/keystore.properties
+android/local.properties
+android/app/google-services.json
+google-services.json
+.gradle/
+.build-outputs/
+*.apk
+*.aab
+*.ap_
+
+# Generated cPanel packaging & workspace artifacts
+deploy-cpanel/
+pantomix-cpanel.zip
+.aistudio/
+
+# Logs & OS files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db

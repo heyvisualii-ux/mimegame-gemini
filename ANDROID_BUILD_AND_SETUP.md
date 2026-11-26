@@ -11,7 +11,7 @@ This project is configured with **Capacitor 7** (`com.pantomix.app`, App Name: *
 - **Capacitor Version:** `7.x` (`@capacitor/core`, `@capacitor/cli`, `@capacitor/android`)
 - **Production Origin URL (`CAPACITOR_SERVER_URL`):** Defaults to `https://game.dresmaeiliclinic.ir/` in `capacitor.config.ts` and `.env.example` (can be overridden via `CAPACITOR_SERVER_URL`).
   - `/api/ai/*` routes run server-side with `process.env.GEMINI_API_KEY` so the Gemini API key is never stored inside the Android APK.
-  - `android/app/src/main/res/xml/network_security_config.xml` enforces HTTPS globally and allows HTTP fallback for `game.dresmaeiliclinic.ir`, `localhost`, and `10.0.2.2` if explicitly overridden during local testing.
+  - `android/app/src/main/res/xml/network_security_config.xml` enforces HTTPS globally and permits cleartext only for `localhost` and `10.0.2.2` during local emulator testing.
 - **Fallback Shell (`mobile-shell/index.html`):** Displayed automatically if the Android device cannot reach the server at startup, with a Persian retry button.
 
 ---
@@ -41,7 +41,7 @@ On Windows (from the project root):
 ```powershell
 npm run android:signing-report:win
 ```
-*(Or manually: `cd android && .\gradlew.bat signingReport`)*
+*(Linux/macOS: `npm run android:signing-report`)*
 
 Copy the **SHA1** and **SHA-256** fingerprints from `Variant: debug` (and later `Variant: release`).
 
@@ -60,7 +60,7 @@ Copy the **SHA1** and **SHA-256** fingerprints from `Variant: debug` (and later 
 ### Step C: Download and Install `google-services.json`
 
 1. In Firebase Console -> **Project Settings -> Your apps -> `com.pantomix.app`**, click **Download `google-services.json`**.
-2. Place the file at:
+2. Place the file at (excluded from Git via `.gitignore` — must be added locally before building):
    ```
    android/app/google-services.json
    ```
@@ -68,13 +68,13 @@ Copy the **SHA1** and **SHA-256** fingerprints from `Variant: debug` (and later 
 
 ---
 
-## 4. Building Debug & Release APKs on Windows
+## 4. Building Debug & Release APKs / Play Store AAB on Windows
 
 From the project root on Windows:
 
 ```powershell
 # 1. Install dependencies
-npm install
+npm ci
 
 # 2. Sync Capacitor config, native plugins, icons & splash assets
 npm run cap:sync
@@ -88,7 +88,7 @@ npm run cap:open
 ```powershell
 npm run android:debug:win
 ```
-*(Or inside `android/`: `.\gradlew.bat assembleDebug`)*
+*(Linux/macOS: `npm run android:debug`)*
 
 Generated APK path:
 ```
@@ -100,20 +100,25 @@ You can rename/copy this file to `PantoMix.apk` or install directly via ADB / US
 adb install -r android\app\build\outputs\apk\debug\app-debug.apk
 ```
 
-### Build Signed Release APK
+### Build Signed Release APK & Play Store AAB
 
 1. Generate a release keystore (keep private, do not commit):
    ```powershell
-   keytool -genkey -v -keystore android\pantomix-release.keystore -alias pantomix -keyalg RSA -keysize 2048 -validity 10000
+   keytool -genkeypair -v -keystore android\pantomix-release.keystore -alias pantomix -keyalg RSA -keysize 2048 -validity 10000
    ```
 2. Copy `android\keystore.properties.example` to `android\keystore.properties` and fill in your keystore credentials.
-3. Add the release keystore's **SHA-1** and **SHA-256** (`keytool -list -v -keystore android\pantomix-release.keystore -alias pantomix`) to Firebase Console.
+3. Add the release keystore's **SHA-1** and **SHA-256** (`keytool -list -v -keystore android\pantomix-release.keystore -alias pantomix`) to Firebase Console (and Play App Signing SHA-1 from Play Console for AAB distribution).
 4. Run:
    ```powershell
-   cd android
-   .\gradlew.bat assembleRelease
+   # Signed Release APK
+   npm run android:release:win
+   # Signed Play Store AAB
+   npm run android:bundle:win
    ```
-   Output: `android\app\build\outputs\apk\release\app-release.apk`
+   *(Linux/macOS: `npm run android:release` and `npm run android:bundle`)*
+   Outputs:
+   - `android\app\build\outputs\apk\release\app-release.apk`
+   - `android\app\build\outputs\bundle\release\app-release.aab`
 
 ---
 

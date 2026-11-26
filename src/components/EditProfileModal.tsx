@@ -63,12 +63,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
     setIsSaving(true);
     try {
-      await onSaveProfile({
+      const result = await onSaveProfile({
         displayName: cleanName,
         username: cleanUser,
         bio: bio.trim(),
         photoURL: selectedPhotoURL || undefined,
       });
+      if (result === false) {
+        setErrorMsg('خطا در ذخیره تغییرات پروفایل. لطفاً دوباره تلاش کنید.');
+        return;
+      }
       soundManager.playSuccess();
       onClose();
     } catch (err: unknown) {

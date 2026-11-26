@@ -24,7 +24,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const auth = useAuth();
   const authState = propAuthState || auth.authState;
   const authError = propAuthError !== undefined ? propAuthError : auth.authError;
-  const onGoogleLogin = propOnGoogleLogin || (async () => { await auth.loginWithGoogle(); });
+  const onGoogleLogin = propOnGoogleLogin || auth.loginWithGoogle;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -34,8 +34,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     soundManager.playPop();
     setIsSubmitting(true);
     try {
-      await onGoogleLogin();
-      onClose();
+      const result = await onGoogleLogin();
+      if (result !== false) {
+        onClose();
+      }
     } catch {
       // Error handled by parent auth state
     } finally {

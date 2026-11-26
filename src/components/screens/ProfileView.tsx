@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Achievement, AuthState, GameSession, UserProfile } from '@/types/game';
 import { useAuth } from '@/context/AuthContext';
@@ -61,13 +61,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const profile = propProfile !== undefined ? propProfile : auth.userProfile;
   const authState = propAuthState || auth.authState;
   const authError = propAuthError !== undefined ? propAuthError : auth.authError;
-  const onGoogleLogin = propOnGoogleLogin || (async () => { await auth.loginWithGoogle(); });
-  const onLogout = propOnLogout || (async () => { await auth.logout(); });
-  const onUpdateProfile = propOnUpdateProfile || (async (data) => { await auth.updateProfileData(data); });
+  const onGoogleLogin = propOnGoogleLogin || auth.loginWithGoogle;
+  const onLogout = propOnLogout || auth.logout;
+  const onUpdateProfile = propOnUpdateProfile || auth.updateProfileData;
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [copiedUid, setCopiedUid] = useState(false);
+  const [isNativeAndroid, setIsNativeAndroid] = useState(false);
+
+  useEffect(() => {
+    setIsNativeAndroid(isCapacitorNative());
+  }, []);
 
   const isAuthenticated = authState === 'AUTHENTICATED' && !!profile?.uid;
   const avatarUrl = profile?.photoURL || '/pantomix_mascot.jpg';
@@ -230,7 +235,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {/* Modular Membership & Play Billing Readiness Card */}
       {(() => {
-        const caps = monetizationService.getCapabilities(isCapacitorNative());
+        const caps = monetizationService.getCapabilities(isNativeAndroid);
         return (
           <GlassCard className="p-3.5 flex items-center justify-between gap-3 text-right">
             <div className="flex items-center gap-2.5">
@@ -374,9 +379,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
           profile={profile}
-          onSaveProfile={async (data) => {
-            await onUpdateProfile(data);
-          }}
+          onSaveProfile={(data) => onUpdateProfile(data)}
         />
       )}
 
