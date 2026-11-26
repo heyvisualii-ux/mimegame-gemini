@@ -3,6 +3,7 @@ import firebaseConfig from './firebase-applet-config.json';
 
 const serverUrl =
   process.env.CAPACITOR_SERVER_URL || 'https://game.dresmaeiliclinic.ir/';
+const isLocalHttpServer = serverUrl.startsWith('http://');
 
 const config: CapacitorConfig = {
   appId: 'com.pantomix.app',
@@ -10,7 +11,7 @@ const config: CapacitorConfig = {
   webDir: 'mobile-shell',
   server: {
     url: serverUrl,
-    cleartext: true,
+    cleartext: isLocalHttpServer,
     androidScheme: 'https',
     errorPath: 'index.html',
     allowNavigation: [
@@ -20,10 +21,11 @@ const config: CapacitorConfig = {
       '*.firebaseapp.com',
       '*.googleapis.com',
       'apis.google.com',
+      '*.gstatic.com',
     ],
   },
   android: {
-    allowMixedContent: true,
+    allowMixedContent: isLocalHttpServer,
     backgroundColor: '#FFFFFF',
     captureInput: true,
     webContentsDebuggingEnabled: false,

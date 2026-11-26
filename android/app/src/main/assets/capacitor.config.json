@@ -4,7 +4,7 @@
 	"webDir": "mobile-shell",
 	"server": {
 		"url": "https://game.dresmaeiliclinic.ir/",
-		"cleartext": true,
+		"cleartext": false,
 		"androidScheme": "https",
 		"errorPath": "index.html",
 		"allowNavigation": [
@@ -13,11 +13,12 @@
 			"accounts.google.com",
 			"*.firebaseapp.com",
 			"*.googleapis.com",
-			"apis.google.com"
+			"apis.google.com",
+			"*.gstatic.com"
 		]
 	},
 	"android": {
-		"allowMixedContent": true,
+		"allowMixedContent": false,
 		"backgroundColor": "#FFFFFF",
 		"captureInput": true,
 		"webContentsDebuggingEnabled": false

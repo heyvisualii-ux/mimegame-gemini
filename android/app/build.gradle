@@ -17,19 +17,43 @@ android {
         }
     }
 
-    def keystorePropertiesFile = rootProject.file("keystore.properties")
-    def keystoreProperties = new Properties()
-    if (keystorePropertiesFile.exists()) {
-        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
     }
 
-    signingConfigs {
-        if (keystorePropertiesFile.exists()) {
-            release {
-                keyAlias keystoreProperties.getProperty("keyAlias")
-                keyPassword keystoreProperties.getProperty("keyPassword")
-                storeFile file(keystoreProperties.getProperty("storeFile"))
-                storePassword keystoreProperties.getProperty("storePassword")
+    def keystorePropertiesFile = rootProject.file("keystore.properties")
+    def keystoreProperties = new Properties()
+    def hasValidReleaseSigning = false
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+        def rawStoreFile = keystoreProperties.getProperty("storeFile")?.trim()
+        def rawStorePassword = keystoreProperties.getProperty("storePassword")?.trim()
+        def rawKeyAlias = keystoreProperties.getProperty("keyAlias")?.trim()
+        def rawKeyPassword = keystoreProperties.getProperty("keyPassword")?.trim()
+        if (
+            rawStoreFile &&
+            rawStorePassword &&
+            rawKeyAlias &&
+            rawKeyPassword &&
+            rawStorePassword != "CHANGE_ME" &&
+            rawKeyPassword != "CHANGE_ME"
+        ) {
+            def resolvedStoreFile = rootProject.file(rawStoreFile).exists()
+                ? rootProject.file(rawStoreFile)
+                : file(rawStoreFile)
+            if (resolvedStoreFile.exists()) {
+                hasValidReleaseSigning = true
+                signingConfigs {
+                    release {
+                        keyAlias rawKeyAlias
+                        keyPassword rawKeyPassword
+                        storeFile resolvedStoreFile
+                        storePassword rawStorePassword
+                    }
+                }
+            } else {
+                logger.warn("Release keystore not found at '${resolvedStoreFile.absolutePath}'. Release build will remain unsigned.")
             }
         }
     }
@@ -37,8 +61,8 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            if (keystorePropertiesFile.exists()) {
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasValidReleaseSigning) {
                 signingConfig signingConfigs.release
             }
         }
